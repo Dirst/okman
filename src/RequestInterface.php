@@ -13,28 +13,28 @@ interface RequestInterface
     /**
      * Send Get request.
      *
+     * @param string $url
+     *   Url to send request to.
      * @param array $getParameters
      *   Parameters to send with Get request.
-     * @param string $cookies
-     *   Cookies to use in current request.
      *
-     * @return string
-     *   Html response.
+     * @return mixed
+     *   Html response string or false on failure.
      */
-    public function requestGet(array $getParameters = null, $cookies = null);
+    public function requestGet($url, array $getParameters = null);
 
     /**
      * Send post request.
-     *
+     * 
+     * @param string $url
+     *   Url to send request to.
      * @param array $postData
      *   Data to post.
-     * @param string $cookies
-     *   Cookies to use in current request.
      *
-     * @return string
-     *   Html response.
+     * @return mixed
+     *   Html response string or false on failure.
      */
-    public function requestPost(array $postData, $cookies = null);
+    public function requestPost($url, array $postData);
 
     /**
      * Gets cookies from current request.
@@ -45,10 +45,18 @@ interface RequestInterface
     public function getCookies();
 
     /**
-     * Get html of the current request.
+     * Set cookies before request if needed.
      *
-     * @return string
-     *   Html string.
+     * @param array $cookies
+     *   Array of cookies.
      */
-    public function getBody();
+    public function setCookies($cookies);
+
+    /**
+     * Set headers before request if needed.
+     *
+     * @param array $headers
+     *   Array of headers.
+     */
+    public function setHeaders($headers);
 }

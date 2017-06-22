@@ -15,9 +15,6 @@ class OkToolsBase
     // @var requestInterface object.
     private $requestBehaviour;
 
-    // @var string of cookies
-    private $cookies;
-
     /**
      *
      * @param RequestInterface $requestBehaviour
@@ -27,7 +24,7 @@ class OkToolsBase
     {
         $this->requestBehaviour = $requestBehaviour;
     }
-    
+
     /**
      * Login to OK.RU.
      *
@@ -35,12 +32,18 @@ class OkToolsBase
      *   User phone number.
      * @param string $pass
      *   Password.
-     * @param string $proxy
-     *   Proxy string type:ip:port:login:pass.
      */
-    public function login($login, $pass, $proxy = null)
+    public function login($login, $pass)
     {
-      
+        $postData = 
+        [
+            'fr.login' => $login,
+            'fr.password' => $pass,
+            'fr.posted' => 'set',
+            'fr.proto' => 1
+        ];
+
+        print $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
     }
 
     /**
@@ -48,7 +51,12 @@ class OkToolsBase
      */
     public function logout()
     {
-      
+        $postData = 
+        [
+            'fr.posted' => 'set',
+            'button_logoff' => 'Выйти'
+        ];
+        print $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGOUT_PATH, $postData);
     }
 
     /**
@@ -65,12 +73,14 @@ class OkToolsBase
     /**
      * Assign group role to passed user id.
      *
-     * @param OkGroupRole $role
+     * @param OkGroupRoleEnum $role
      *   Enum group role object.
      * @param int $uid
      *   Id of the user in OK.
+     * @param int groupId
+     *   Id of the group in OK.
      */
-    public function assignGroupRole(OkGroupRole $role, $uid)
+    public function assignGroupRole(OkGroupRoleEnum $role, $uid, $groupId)
     {
       
     }
@@ -107,10 +117,10 @@ class OkToolsBase
     }
 
     /**
-     * @TODO define content parsing/posting methods.s
+     * @TODO define content parsing/posting methods.
      */
-    public function getGroupContent();
-    public function postContentToGroup();
+//    public function getGroupContent();
+//    public function postContentToGroup();
 
     /**
      * Requests a page with passed relative url.
