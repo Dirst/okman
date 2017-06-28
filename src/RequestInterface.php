@@ -37,20 +37,20 @@ interface RequestInterface
     public function requestPost($url, array $postData);
 
     /**
-     * Gets cookies from current request.
+     * Gets headers from current request.
      *
      * @return string
-     *   Cookies string.
+     *   Headers string.
      */
-    public function getCookies();
+    public function getHeaders();
 
     /**
-     * Set cookies before request if needed.
+     * Gets headers from current request.
      *
-     * @param array $cookies
-     *   Array of cookies.
+     * @return int
+     *   Current response http code.
      */
-    public function setCookies($cookies);
+    public function getResponseCode();
 
     /**
      * Set headers before request if needed.

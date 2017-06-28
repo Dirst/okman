@@ -13,5 +13,10 @@ use MyCLabs\Enum\Enum;
 class OkPagesEnum extends Enum
 {
     const LOGIN_PATH = "dk?bk=GuestMain";
-    const LOGOUT_PATH = "dk?bk=Logoff&st.cmd=logoff&_prevCmd=logoff&tkn=2479";
+    const LOGOUT_PATH = "dk?bk=Logoff&st.cmd=logoff&_prevCmd=logoff";
+    const NEWS_PATH = "dk?st.cmd=userMain&_prevCmd=userMain&_aid=leftMenuClick";
+    const GUESTS_PATH = "dk?st.cmd=userGuests&_prevCmd=userGuests&_aid=leftMenuClick";
+    const EVENTS = "dk?st.cmd=userEvents&st.rf=on&_prevCmd=userEvents&_aid=leftMenuClick";
+    const GROUP_MEMBERS = "dk?st.cmd=altGroupActiveMembers&_prevCmd=altGroupMain&_aid=groupProfMenu&st.groupId=GROUPID&st.page=PAGENUMBER";
+    const MODER_ASSIGN_PAGE = "dk?st.cmd=altGroupGrantModerator&st.groupId=GROUPID&st.usrId=USERID&_prevCmd=altGroupActiveMembers&st.rtu=RETURNPAGE";
 }

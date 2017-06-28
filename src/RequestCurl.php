@@ -45,7 +45,10 @@ class RequestCurl implements RequestInterface
      */
     public function requestGet($url, array $getParameters = null)
     {
-        $this->setRequest($url . "?" . http_build_query($getParameters));
+        // check if url has been passed with parameters already.
+        $url = $url . (strpos($url, "?") === FALSE ? "?" : "&");
+        $this->setRequest($url . http_build_query($getParameters));
+        curl_setopt($this->curlResource, CURLOPT_HTTPGET, true);
         return curl_exec($this->curlResource);
     }
     
@@ -67,14 +70,16 @@ class RequestCurl implements RequestInterface
      */
     private function setRequest($url)
     {
+        curl_setopt($this->curlResource, CURLOPT_URL, html_entity_decode($url));
         curl_setopt($this->curlResource, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($this->curlResource, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($this->curlResource, CURLOPT_POST, true);
         curl_setopt($this->curlResource, CURLOPT_USERAGENT, self::USER_AGENT);
-        curl_setopt($this->curlResource, CURLOPT_URL, $url);
-  
+        curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
+
         // Save cookies in memory until curl_close  is not called. Windows use NULL.
         curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? NULL : '/dev/null');
-
+        
         // Set proxy settings.
         if ($this->proxy)
         {
@@ -84,23 +89,25 @@ class RequestCurl implements RequestInterface
             curl_setopt($this->curlResource, CURLOPT_PROXYTYPE, $proxyType == 'http' ? CURLPROXY_HTTP : CURLPROXY_SOCKS5);
             curl_setopt($this->curlResource, CURLOPT_PROXYUSERNAME, $proxyLogin);
             curl_setopt($this->curlResource, CURLOPT_PROXYPASSWORD, $proxyPass);
+            curl_setopt($this->curlResource, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($this->curlResource, CURLOPT_SSL_VERIFYHOST, false);
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getCookies()
+    public function getHeaders()
     {
-        
+        return curl_getinfo($this->curlResource, CURLINFO_HEADER_OUT);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function setCookies($cookies) 
+    public function getResponseCode() 
     {
-      
+        return curl_getinfo($this->curlResource, CURLINFO_HTTP_CODE);
     }
 
     /**
@@ -108,6 +115,6 @@ class RequestCurl implements RequestInterface
      */
     public function setHeaders($headers) 
     {
- 
+        curl_setopt($this->curlResource, CURLOPT_HTTPHEADER, $headers);
     }
 }
