@@ -3,12 +3,13 @@
 namespace Dirst\OkTools;
 
 /**
- * Base abstract class for all ok tools.
+ * Class for all ok tools.
  *
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  * 
- * @TODO errors and exceptions.
+ * @TODO errors and exceptions. Remove Code doubling. Code refactoring.
+ *   Methods for actual check of the results of current methods.
  */
 class OkToolsBase
 {
@@ -68,6 +69,7 @@ class OkToolsBase
      * - Close other notifications.
      * 
      * @param float $delaySeconds
+     *   Delay after one notification send.
      */
     public function checkAllNotifications($delaySeconds = 0)
     {
@@ -78,7 +80,7 @@ class OkToolsBase
         // Check guests.
         $this->attendPage(OkPagesEnum::GUESTS_PATH);
         
-        // Check notifications.
+        // Submit notifications.
         $event = true;
         while ($event)
         {
@@ -90,6 +92,8 @@ class OkToolsBase
                 $event = $event->find("li.notify", 0);
                 $this->checkNotification($event);
             }
+            
+            // Clear memory. Delay.
             $html->clear();
             usleep($delaySeconds * 1000000);
         }
@@ -125,7 +129,7 @@ class OkToolsBase
         $postData[$event->find(".base-button_target", $buttonPos)->name] = $event->find(".base-button_target", $buttonPos)->value;
 
         // Send request for notification close or accept.
-        $requestUrl = ltrim($event->find("form", 0)->action, "/");            
+        $requestUrl = ltrim($event->find("form", 0)->action, "/");
         $this->requestBehaviour->requestPost(self::URL . $requestUrl, $postData);
     }
 
@@ -142,24 +146,21 @@ class OkToolsBase
      * @return boolean
      *   True if role has been assigned.
      * 
-     * @TODO decouple http codes in Enum class. 
+     * @TODO decouple http codes in Enum class. Check if user has role.
      */
     public function assignGroupRole(OkGroupRoleEnum $role, $uid, $groupId)
     {
         // Replace placeholders with actual values.
-        $moderAssignAddr = str_replace("GROUPID", $groupId, OkPagesEnum::MODER_ASSIGN_PAGE);
-        $moderAssignAddr = str_replace("USERID", $uid, $moderAssignAddr);
-        $moderAssignAddr = str_replace("RETURNPAGE", self::URL . OkPagesEnum::EVENTS, $moderAssignAddr);
-        
-        
+        $moderAssignUrl = str_replace(["GROUPID", "USERID", "RETURNPAGE"], [$groupId, $uid, self::URL . OkPagesEnum::EVENTS], OkPagesEnum::MODER_ASSIGN_PAGE);
+
         // Go to moderation control.
-        $moderPage = $this->attendPage($moderAssignAddr);
-        $moderForm = str_get_html($moderPage);
-        $form = $moderForm->find(".uform form", 0);
+        $moderFormPage = str_get_html($this->attendPage($moderAssignUrl));
+        $form = $moderFormPage->find(".uform form", 0);
         
         // Check if form shows up on the page.
         if (!$form)
         {
+            $moderFormPage->clear();
             return false;
         }
 
@@ -169,18 +170,11 @@ class OkToolsBase
           "fr.ri" => $role->getValue(),
           "button_save" => "Сохранить"
         ];
-
-        $this->requestBehaviour->requestPost(self::URL . $form->action, $postData);
+        $this->requestBehaviour->requestPost(self::URL . ltrim($form->action, "/"), $postData);
         
         // If code 200 then all went ok - return true, if no return false.
-        if ($this->requestBehaviour->getResponseCode() == 200)
-        {
-            return true;
-        } 
-        else
-        {
-            return false;
-        }
+        $moderFormPage->clear();
+        return $this->checkResponseCode();
     }
 
     /**
@@ -199,25 +193,24 @@ class OkToolsBase
     public function getGroupUsers($groupId, $page = 1)
     {
         // Replace placeholders with actual values.
-        $membersAddr = str_replace("GROUPID", $groupId, OkPagesEnum::GROUP_MEMBERS);
-        $membersAddr = str_replace("PAGENUMBER", $page, $membersAddr);
-   
+        $membersPageUrl = str_replace(["GROUPID", "PAGENUMBER"], [$groupId, $page], OkPagesEnum::GROUP_MEMBERS);
+
         // Get page with members list.
-        $members = $this->attendPage($membersAddr);
-        $members = str_get_html($members);
+        $membersPage = str_get_html($this->attendPage($membersPageUrl));
 
         // Get all members block.
-        $members = $members->find("#member-list", 0);
+        $membersList = $membersPage->find("#member-list", 0);
 
         // If no members on the page return false.
-        if (!$members) 
+        if (!$membersList) 
         {
+            $membersPage->clear();
             return false;
         }
 
         // Collect all members information.
         $usersArray = [];
-        foreach ($members->find("li.item") as $oneMember)
+        foreach ($membersList->find("li.item") as $oneMember)
         {
             // Get Id of a user.
             $out = null;
@@ -229,20 +222,112 @@ class OkToolsBase
                 ];
         }
 
+        $membersPage->clear();
         return $usersArray;
     }
 
     /**
      * Invite user to a group.
      *
-     * @param int $groupId
-     *   Group Id to invite to.
      * @param int $uid
      *   User to invite to a group.
+     * @param int $groupId
+     *   Group Id to invite to.
+     * 
+     * @return boolean
+     *   True if invite has been send.
      */
-    public function inviteUserToGroup($groupId, $uid)
+    public function inviteUserToGroup($uid, $groupId)
     {
-      
+        // If user invited to group.
+        if ($this->isInvited($uid, $groupId))
+        {
+            return false;
+        }
+
+        // Replace placeholders with actual values.
+        $invitePageUrl = str_replace(["GROUPID", "USERID", "RETURNPAGE"], [$groupId, $uid, self::URL . OkPagesEnum::EVENTS], OkPagesEnum::INVITE_TO_GROUP_PAGE);
+
+        // Get page with invite form.
+        $inviteFormPage = $this->attendPage($invitePageUrl);
+        $inviteFormPage = str_get_html($inviteFormPage);
+        $inviteForm = $inviteFormPage->find(".uform form", 0);
+
+        // If no members on the page return false.
+        if (!$inviteForm) 
+        {
+            $inviteFormPage->clear();
+            return false;
+        }
+
+        // Send request to invite user.
+        $postData = [
+          "fr.posted" => "set",
+          "button_send" => "Отправить"
+        ];
+        $this->requestBehaviour->requestPost(self::URL . ltrim($inviteForm->action, "/"), $postData);
+
+        // Clear memory.
+        $inviteFormPage->clear();
+
+        // Check if user invited.
+        return $this->isInvited($uid, $groupId);
+    }
+
+    /**
+     * Check if user already invited.
+     *
+     * @param int $uid
+     *   Id of the user in OK.
+     * @param int groupId
+     *   Id of the group in OK.
+     * 
+     * @return boolean
+     *   True if user already invited.
+     */
+    public function isInvited($uid, $groupId)
+    {    
+        $groupsList = true;
+        $page = 1;
+        while ($groupsList)
+        {
+            // Replace placeholders with actual values.
+            $inviteGroupsUrl = str_replace(["USERID", "PAGENUMBER"], [$uid, $page], OkPagesEnum::INVITE_LIST_PAGE);
+            $inviteGroupPage = str_get_html($this->attendPage($inviteGroupsUrl));
+
+            // If group items exists.
+            if (($groupsList = $inviteGroupPage->find("li.item", 0)) & ($groupRow = $inviteGroupPage->find("li#invite-id_{$uid}_{$groupId}", 0))) 
+            {
+                // Check if group disabled.
+                if (strpos($groupRow->find("a", 0)->class, "__disabled") !== false)
+                {
+                    return true;
+                }
+            }
+            
+            $page++;
+            $inviteGroupPage->clear();
+        }
+
+        return false;
+    }
+
+    /**
+     * Check last response code.
+     * 
+     * @return boolean
+     *   True if code == 200
+     */
+    private function checkResponseCode()
+    {
+        if ($this->requestBehaviour->getResponseCode() == 200)
+        {
+            return true;
+        } 
+        else
+        {
+            return false;
+        }
     }
 
     /**
