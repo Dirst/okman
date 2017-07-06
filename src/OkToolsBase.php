@@ -46,7 +46,22 @@ class OkToolsBase
             'fr.proto' => 1
         ];
 
-        $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
+        $loggedIn = $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
+        
+        // Check if user Frozen/Blocked.
+        $loggedIn = str_get_html($loggedIn);
+        $box = $loggedIn->find("#boxPage", 0);
+        if ($box)
+        {    
+            switch($box->{"data-logloc"}) {
+                case OkBlockedStatusEnum::USER_BLOCKED:
+                    print "BLOCKED";
+                  break;
+                case OkBlockedStatusEnum::USER_FROZEN:
+                    print "FROZEN";
+                  break;
+            }
+        }
     }
 
     /**
@@ -73,7 +88,6 @@ class OkToolsBase
      */
     public function checkAllNotifications($delaySeconds = 0)
     {
-
         // Check news.
         $this->attendPage(OkPagesEnum::NEWS_PATH);
 
@@ -327,6 +341,31 @@ class OkToolsBase
         else
         {
             return false;
+        }
+    }
+
+    /**
+     * Check if group is blocked.
+     *
+     * @param int $groupId
+     *   Id of checked group.
+     * 
+     * @return boolean
+     *   Return true if group is not blocked.
+     * 
+     * @TODO handle not found exception.
+     */
+    public function isGroupAvailable($groupId) {
+        $groupUrl = str_replace("GROUPID", $groupId, OkPagesEnum::GROUP_PAGE);
+
+        // Check if group Blocked.
+        $group = $this->attendPage($groupUrl);
+        $group = str_get_html($group);
+        
+        if ($group->find("." . OkBlockedStatusEnum::GROUP_BLOCKED_CLASS, 0) || $group->find("." . OkBlockedStatusEnum::ERROR_PAGE_CLASS, 0)) {
+            return false;
+        } else {
+            return true;
         }
     }
 

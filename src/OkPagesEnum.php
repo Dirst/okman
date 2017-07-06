@@ -21,4 +21,5 @@ class OkPagesEnum extends Enum
     const MODER_ASSIGN_PAGE = "dk?st.cmd=altGroupGrantModerator&st.groupId=GROUPID&st.usrId=USERID&_prevCmd=altGroupActiveMembers&st.rtu=RETURNPAGE";
     const INVITE_TO_GROUP_PAGE = "dk?st.cmd=altGroupConfirmInvite&st.iog=off&st.groupId=GROUPID&st.usrId=USERID&st.rtu=RETURNPAGE&_prevCmd=altGroupSelectGroupToAdd";
     const INVITE_LIST_PAGE = "dk?st.cmd=altGroupSelectGroupToAdd&st.friendId=USERID&st.page=PAGENUMBER&_prevCmd=altGroupSelectGroupToAdd";
+    const GROUP_PAGE = "dk?st.cmd=altGroupMain&st.groupId=GROUPID&_prevCmd=userAltGroups&_aid=groupOwnShowcase";
 }

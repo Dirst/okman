@@ -46,7 +46,7 @@ class RequestCurl implements RequestInterface
     public function requestGet($url, array $getParameters = null)
     {
         // check if url has been passed with parameters already.
-        $url = $url . (strpos($url, "?") === FALSE ? "?" : "&");
+        $url = $url . (strpos($url, "?") === false ? "?" : "&");
         $this->setRequest($url . http_build_query($getParameters));
         curl_setopt($this->curlResource, CURLOPT_HTTPGET, true);
         return curl_exec($this->curlResource);
@@ -58,7 +58,9 @@ class RequestCurl implements RequestInterface
     public function requestPost($url, array $postData)
     {
         $this->setRequest($url);
-        curl_setopt($this->curlResource, CURLOPT_POSTFIELDS, http_build_query($postData));
+        if ($postData) {
+            curl_setopt($this->curlResource, CURLOPT_POSTFIELDS, http_build_query($postData));
+        }
         return curl_exec($this->curlResource);
     }
 
