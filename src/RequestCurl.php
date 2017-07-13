@@ -2,6 +2,8 @@
 
 namespace Dirst\OkTools;
 
+use Dirst\OkTools\Exceptions\OkToolsResponseException;
+
 /**
  * Curl request methods implementation.
  *
@@ -49,7 +51,8 @@ class RequestCurl implements RequestInterface
         $url = $url . (strpos($url, "?") === false ? "?" : "&");
         $this->setRequest($url . http_build_query($getParameters));
         curl_setopt($this->curlResource, CURLOPT_HTTPGET, true);
-        return curl_exec($this->curlResource);
+        
+        return $this->executeRequest();
     }
     
     /**
@@ -61,7 +64,32 @@ class RequestCurl implements RequestInterface
         if ($postData) {
             curl_setopt($this->curlResource, CURLOPT_POSTFIELDS, http_build_query($postData));
         }
-        return curl_exec($this->curlResource);
+
+        return $this->executeRequest();
+    }
+    
+    /**
+     * Executes prepared request.
+     *
+     * @return string
+     *   Html response.
+     *
+     * @throws OkToolsResponseException
+     *   Exception will be thrown if respoonse code != 200.
+     */
+    private function executeRequest()
+    {
+        $result = curl_exec($this->curlResource);
+
+        // Check if response code is OK. 
+        if ($this->getResponseCode() == 200) 
+        {
+            return $result;
+        }
+        else 
+        {
+            throw new OkToolsResponseException("Response has been failed", $this->getHeaders(), $this->getResponseCode(), $result);
+        }
     }
 
     /**

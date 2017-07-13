@@ -3,7 +3,8 @@
     "version": "0.1",
     "autoload": {
         "psr-4" : {
-            "Dirst\\OkTools\\" : "src/"
+            "Dirst\\OkTools\\" : "src/",
+            "Dirst\\OkTools\\Exceptions\\" : "src/exceptions/"
         }
     },
     "require": {

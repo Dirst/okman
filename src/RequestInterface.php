@@ -18,6 +18,9 @@ interface RequestInterface
      * @param array $getParameters
      *   Parameters to send with Get request.
      *
+     * @throw OkToolsResponseException
+     *   Will be thrown if response code != 200.
+     * 
      * @return mixed
      *   Html response string or false on failure.
      */
@@ -31,6 +34,9 @@ interface RequestInterface
      * @param array $postData
      *   Data to post.
      *
+     * @throw OkToolsResponseException
+     *   Will be thrown if response code != 200.
+     * 
      * @return mixed
      *   Html response string or false on failure.
      */
