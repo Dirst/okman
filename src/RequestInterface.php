@@ -20,7 +20,7 @@ interface RequestInterface
      *
      * @throw OkToolsResponseException
      *   Will be thrown if response code != 200.
-     * 
+     *
      * @return mixed
      *   Html response string or false on failure.
      */
@@ -28,7 +28,7 @@ interface RequestInterface
 
     /**
      * Send post request.
-     * 
+     *
      * @param string $url
      *   Url to send request to.
      * @param array $postData
@@ -36,7 +36,7 @@ interface RequestInterface
      *
      * @throw OkToolsResponseException
      *   Will be thrown if response code != 200.
-     * 
+     *
      * @return mixed
      *   Html response string or false on failure.
      */

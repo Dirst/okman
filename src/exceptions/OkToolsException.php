@@ -8,7 +8,7 @@ namespace Dirst\OkTools\Exceptions;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsException extends \Exception 
+class OkToolsException extends \Exception
 {
     // @var array.
     protected $values;
@@ -25,10 +25,10 @@ class OkToolsException extends \Exception
      * @param Throwable $previous.
      *   Previous exception.
      */
-    public function __construct(string $message, $html, int $code = 0, Throwable $previous = null)
+    public function __construct($message, $html, $code = 0, Throwable $previous = null)
     {
-      $this->values['html'] = $html;
-      parent::__construct($message, $code, $previous);
+        $this->values['html'] = $html;
+        parent::__construct($message, $code, $previous);
     }
 
     /**

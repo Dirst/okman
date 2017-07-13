@@ -27,11 +27,17 @@ class OkToolsResponseException extends OkToolsException
      * @param Throwable $previous.
      *   Previous exception.
      */
-    public function __construct(string $message, $html, $responseCode, $responseHeaders, int $code = 0, Throwable $previous = null)
-    {
-      $this->values['responseCode'] = $responseCode;
-      $this->values['responseHeaders'] = $responseHeaders;
+    public function __construct(
+        $message,
+        $html,
+        $responseCode,
+        $responseHeaders,
+        $code = 0,
+        Throwable $previous = null
+    ) {
+        $this->values['responseCode'] = $responseCode;
+        $this->values['responseHeaders'] = $responseHeaders;
 
-      parent::__construct($message, $html, $code, $previous);
+        parent::__construct($message, $html, $code, $previous);
     }
 }

@@ -81,14 +81,16 @@ class RequestCurl implements RequestInterface
     {
         $result = curl_exec($this->curlResource);
 
-        // Check if response code is OK. 
-        if ($this->getResponseCode() == 200) 
-        {
+        // Check if response code is OK.
+        if ($this->getResponseCode() == 200) {
             return $result;
-        }
-        else 
-        {
-            throw new OkToolsResponseException("Response has been failed", $this->getHeaders(), $this->getResponseCode(), $result);
+        } else {
+            throw new OkToolsResponseException(
+                "Response has been failed",
+                $this->getHeaders(),
+                $this->getResponseCode(),
+                $result
+            );
         }
     }
 
@@ -108,15 +110,18 @@ class RequestCurl implements RequestInterface
         curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
 
         // Save cookies in memory until curl_close  is not called. Windows use NULL.
-        curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? NULL : '/dev/null');
+        curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? null : '/dev/null');
         
         // Set proxy settings.
-        if ($this->proxy)
-        {
+        if ($this->proxy) {
             list($proxyType, $proxyIp, $proxyPort, $proxyLogin, $proxyPass) = explode(":", $this->proxy);
             curl_setopt($this->curlResource, CURLOPT_PROXY, $proxyIp);
             curl_setopt($this->curlResource, CURLOPT_PROXYPORT, $proxyPort);
-            curl_setopt($this->curlResource, CURLOPT_PROXYTYPE, $proxyType == 'http' ? CURLPROXY_HTTP : CURLPROXY_SOCKS5);
+            curl_setopt(
+                $this->curlResource,
+                CURLOPT_PROXYTYPE,
+                $proxyType == 'http' ? CURLPROXY_HTTP : CURLPROXY_SOCKS5
+            );
             curl_setopt($this->curlResource, CURLOPT_PROXYUSERNAME, $proxyLogin);
             curl_setopt($this->curlResource, CURLOPT_PROXYPASSWORD, $proxyPass);
             curl_setopt($this->curlResource, CURLOPT_SSL_VERIFYPEER, false);
@@ -135,7 +140,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function getResponseCode() 
+    public function getResponseCode()
     {
         return curl_getinfo($this->curlResource, CURLINFO_HTTP_CODE);
     }
@@ -143,7 +148,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function setHeaders($headers) 
+    public function setHeaders($headers)
     {
         curl_setopt($this->curlResource, CURLOPT_HTTPHEADER, $headers);
     }
