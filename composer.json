@@ -1,6 +1,6 @@
 {
     "name": "dirst/oktools",
-    "version": "0.1",
+    "version": "1.0",
     "autoload": {
         "psr-4" : {
             "Dirst\\OkTools\\" : "src/",
@@ -11,6 +11,5 @@
         "php": ">=5.4.0",
         "aszone/simple_html_dom": "*",
         "myclabs/php-enum": "*",
-        "guzzlehttp/guzzle": "*"
     }
 }
