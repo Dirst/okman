@@ -270,7 +270,7 @@ class OkToolsBase
                     "id" => $out[1],
                     "name" => $oneMember->find("span.emphased", 0)->plaintext,
                     "online" => $oneMember->find("span.ic_w", 0) ? true : false
-                ];f
+                ];
         }
 
         // Return users array.
