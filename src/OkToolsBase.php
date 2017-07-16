@@ -4,8 +4,9 @@ namespace Dirst\OkTools;
 
 use Dirst\OkTools\Exceptions\OkToolsException;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
-use Dirst\OkTools\Exceptions\OkToolsResponseException;
 use Dirst\OkTools\Exceptions\OkToolsBlockedException;
+use Dirst\OkTools\Exceptions\OkToolsNotPermittedException;
+use Dirst\OkTools\Exceptions\OkToolsCaptchaAppears;
 
 /**
  * Class for all ok tools.
@@ -43,21 +44,23 @@ class OkToolsBase
      *   Will be thrown on User blocked/frozen marker and if response is not successfull.
      * @throws OkToolsNotFoundException
      *   Will be thrown if no user marker found.
+     *
+     * @return string
+     *   Html page after login.
      */
     public function login($login, $pass)
     {
-        $postData =
-        [
+        $postData = [
             'fr.login' => $login,
             'fr.password' => $pass,
             'fr.posted' => 'set',
             'fr.proto' => 1
         ];
 
-        $loggedIn = $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
-        
+        $loggedInPage = $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
+
         // Check if user Frozen/Blocked.
-        $loggedIn = str_get_html($loggedIn);
+        $loggedIn = str_get_html($loggedInPage);
         $box = $loggedIn->find("#boxPage", 0);
         if ($box) {
             switch ($box->{"data-logloc"}) {
@@ -67,6 +70,8 @@ class OkToolsBase
                 case OkBlockedStatusEnum::USER_FROZEN:
                     throw new OkToolsBlockedException("User has been frozen.", $loggedIn->outertext);
                   break;
+                default:
+                    return $loggedInPage;
             }
         } else {
             throw new OkToolsNotFoundException("Can't find user logged in marker.", $loggedIn->outertext);
@@ -78,8 +83,7 @@ class OkToolsBase
      */
     public function logout()
     {
-        $postData =
-        [
+        $postData = [
             'fr.posted' => 'set',
             'button_logoff' => 'Выйти'
         ];
@@ -114,8 +118,7 @@ class OkToolsBase
                 $this->checkNotification($event);
             }
             
-            // Clear memory. Delay.
-            $html->clear();
+            // Delay.
             usleep($delaySeconds * 1000000);
         }
     }
@@ -192,7 +195,6 @@ class OkToolsBase
         
         // Check if form shows up on the page.
         if (!$form) {
-            $moderFormPage->clear();
             throw new OkToolsNotFoundException(
                 "No moderation form has been found on assign group Role.",
                 $moderFormPage->outertext
@@ -206,9 +208,7 @@ class OkToolsBase
           "button_save" => "Сохранить"
         ];
         $this->requestBehaviour->requestPost(self::URL . ltrim($form->action, "/"), $postData);
-           
-        $moderFormPage->clear();
-        
+
         // Check if user has role.
         return $this->userHasRole($role, $uid, $groupId);
     }
@@ -257,7 +257,6 @@ class OkToolsBase
 
         // If no members on the page - return empty array.
         if (!$membersList) {
-            $membersPage->clear();
             return [];
         }
 
@@ -267,15 +266,14 @@ class OkToolsBase
         // Get Id of a user.
             $out = null;
             preg_match("/friendId=(\d+)/", $oneMember->find("a.clickarea", 0)->href, $out);
-            $usersArray[] =
-                [
+            $usersArray[] = [
                     "id" => $out[1],
-                    "name" => $oneMember->find("span.emphased", 0)->plaintext
-                ];
+                    "name" => $oneMember->find("span.emphased", 0)->plaintext,
+                    "online" => $oneMember->find("span.ic_w", 0) ? true : false
+                ];f
         }
 
         // Return users array.
-        $membersPage->clear();
         return $usersArray;
     }
 
@@ -291,13 +289,17 @@ class OkToolsBase
      *   Thrown if no invite form has been found.
      *
      * @return boolean
-     *   True if invite has been send, False if already invited.
+     *   True if invite has been send, False if not.
      */
     public function inviteUserToGroup($uid, $groupId)
     {
-        // If user invited to group.
+        if (!$this->canBeInvited($uid)) {
+            throw new OkToolsNotPermittedException("User didn't grant permission to invite him.");
+        }
+      
+        // Check before invite.
         if ($this->isInvited($uid, $groupId)) {
-            return false;
+            return true;
         }
 
         // Replace placeholders with actual values.
@@ -312,9 +314,8 @@ class OkToolsBase
         $inviteFormPage = str_get_html($inviteFormPage);
         $inviteForm = $inviteFormPage->find(".uform form", 0);
 
-        // If no form on a page - return false.
+        // If no form on a page throw an exception.
         if (!$inviteForm) {
-            $inviteFormPage->clear();
             throw new OkToolsNotFoundException(
                 "User invite form doesn't exist on the page.",
                 $inviteFormPage->outertext
@@ -328,11 +329,39 @@ class OkToolsBase
         ];
         $this->requestBehaviour->requestPost(self::URL . ltrim($inviteForm->action, "/"), $postData);
 
-        // Clear memory.
-        $inviteFormPage->clear();
-
-        // Check if user invited.
+        // Check if user has been invited.
         return $this->isInvited($uid, $groupId);
+    }
+    
+    /**
+     * Check if user grant permission for invite or there are groups to invite him to.
+     *
+     * @param int $uid
+     *
+     * @throws OkToolsNotFoundException
+     *   If no markers have been found.
+     *
+     * @return boolean
+     *   True if user can be invited. False if not
+     */
+    public function canBeInvited($uid)
+    {
+        // Invite groups url.
+        $inviteGroupsUrl = str_replace(["USERID", "PAGENUMBER"], [$uid, $page], OkPagesEnum::INVITE_LIST_PAGE);
+        $inviteGroupsPage = str_get_html($this->attendPage($inviteGroupsUrl));
+        
+        if ($inviteGroupsPage->find("#boxPage > .dlist_top", 0)) {
+            if ($inviteGroupsPage->find("#groups-list", 0)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            throw new OkToolsNotFoundException(
+                "Something went wrong on 'can be invited' checking",
+                $inviteGroupPage->outertext
+            );
+        }
     }
 
     /**
@@ -343,6 +372,9 @@ class OkToolsBase
      * @param int groupId
      *   Id of the group in OK.
      *
+     * @throws OkToolsNotFoundException
+     *   If no groups has been found.
+     *
      * @return boolean
      *   True if user already invited.
      */
@@ -351,21 +383,25 @@ class OkToolsBase
         $groupsList = true;
         $page = 1;
         while ($groupsList) {
-        // Replace placeholders with actual values.
+            // Replace placeholders with actual values.
             $inviteGroupsUrl = str_replace(["USERID", "PAGENUMBER"], [$uid, $page], OkPagesEnum::INVITE_LIST_PAGE);
-            $inviteGroupPage = str_get_html($this->attendPage($inviteGroupsUrl));
+            $inviteGroupsPage = str_get_html($this->attendPage($inviteGroupsUrl));
 
             // If group items exists.
-            if (($groupsList = $inviteGroupPage->find("li.item", 0)) &
-                ($groupRow = $inviteGroupPage->find("li#invite-id_{$uid}_{$groupId}", 0))) {
-            // Check if group disabled.
+            if (($groupsList = $inviteGroupsPage->find("li.item", 0)) &&
+                ($groupRow = $inviteGroupsPage->find("li#invite-id_{$uid}_{$groupId}", 0))) {
+                // Check if group disabled.
                 if (strpos($groupRow->find("a", 0)->class, "__disabled") !== false) {
                     return true;
                 }
+            } else {
+                throw new OkToolsNotFoundException(
+                    "Can't find groups list. Maybe user didn't grant permissions to invite himself",
+                    $inviteGroupsPage->outertext
+                );
             }
             
             $page++;
-            $inviteGroupPage->clear();
         }
 
         return false;
@@ -395,6 +431,82 @@ class OkToolsBase
             return true;
         }
     }
+    
+    /**
+     * Join the group.
+     *
+     * @param int $groupId
+     *   Id of the group to join.
+     *
+     * @throws OkToolsNotFoundException
+     *   Thrown if no form has been found.
+     */
+    public function joinTheGroup($groupId)
+    {
+        if ($this->isJoinedToGroup($groupId)) {
+            return true;
+        }
+ 
+        $joinForm = $this->joinGroupGetForm($groupId);
+        
+        // Send request to invite user.
+        $postData = [
+          "fr.posted" => "set",
+          "button_join" => "Присоединиться"
+        ];
+        $this->requestBehaviour->requestPost(self::URL . ltrim($joinForm->action, "/"), $postData);
+        
+        return $this->isJoinedToGroup($groupId);
+    }
+    
+    /**
+     * Check if account already in a group.
+     *
+     * @param int $groupId
+     *   Group Id.
+     *
+     * @return boolean
+     *   True if account already in group.
+     */
+    public function isJoinedToGroup($groupId)
+    {
+        $joinForm = $this->joinGroupGetForm($groupId);
+        if ($joinForm->find(".tac", 0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * Get join group form.
+     *
+     * @param int $groupId
+     *   Group Id.
+     *
+     * @return simple_html_dom_node
+     *   Form Dom object.
+     *
+     * @throws OkToolsNotFoundException
+     *   Thrown if no form has been found.
+     */
+    private function joinGroupGetForm($groupId)
+    {
+        $joinGroupUrl = str_replace("GROUPID", $groupId, OkPagesEnum::JOIN_GROUP_PAGE);
+        $joinGroupPage = str_get_html($this->attendPage($joinGroupUrl));
+        
+        $joinForm = $joinGroupPage->find("form.confirm-form", 0);
+        
+         // If no form on a page throw an exception.
+        if (!$joinForm) {
+            throw new OkToolsNotFoundException(
+                "No join form has been found.",
+                $joinGroupPage->outertext
+            );
+        }
+        
+        return $joinForm;
+    }
 
     /**
      * @TODO define content parsing/posting methods.
@@ -408,11 +520,46 @@ class OkToolsBase
      * @param string $pageUrl.
      *   Relative url without slash.
      *
+     * @throws OkToolsCaptchaAppears
+     *   Thrown when captcha appeared and solved.
+     *
      * @return string
      *   Html result.
      */
     public function attendPage($pageUrl)
     {
-        return $this->requestBehaviour->requestGet(self::URL . $pageUrl);
+        $page = $this->requestBehaviour->requestGet(self::URL . $pageUrl);
+        $pageDom = str_get_html($page);
+        
+        // Check if Captcha
+        if ($pageDom->find(".captcha_content", 0)) {
+            throw new OkToolsCaptchaAppears("Captcha appeared", $pageDom->outertext);
+        }
+
+        return $page;
     }
+
+    /**
+     * Solves captcha.
+     *
+     * @param simple_html_dom_node $captchaPage
+     *   Simple_html_dom page with captcha.
+     */
+//    private function solveCaptcha(&$captchaPage)
+//    {
+//        $img = $this->requestBehaviour->requestGet(self::URL . ltrim($captchaPage->find("#captcha", 0)->src, "/"));
+//        $solvation = null;
+//        
+//        // Some work to solve captcha.
+//        //....
+//        // Throw exception if captcha not solved.
+//        
+//        // Post captcha.
+//        $postData = [
+//          "fr.posted" => "set",
+//          "fr.code" => $solvation,
+//          "button_confirm" => "Подтвердить"
+//        ];
+//      $this->requestBehaviour->requestPost(self::URL . ltrim($captchaPage->find("form", 0)->action, "/"), $postData);
+//    }
 }

@@ -25,7 +25,7 @@ class OkToolsException extends \Exception
      * @param Throwable $previous.
      *   Previous exception.
      */
-    public function __construct($message, $html, $code = 0, Throwable $previous = null)
+    public function __construct($message, $html = null, $code = 0, Throwable $previous = null)
     {
         $this->values['html'] = $html;
         parent::__construct($message, $code, $previous);

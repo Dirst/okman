@@ -26,4 +26,6 @@ class OkPagesEnum extends Enum
     const INVITE_LIST_PAGE = "dk?st.cmd=altGroupSelectGroupToAdd&st.friendId=USERID&st.page=PAGENUMBER&"
         . "_prevCmd=altGroupSelectGroupToAdd";
     const GROUP_PAGE = "dk?st.cmd=altGroupMain&st.groupId=GROUPID&_prevCmd=userAltGroups&_aid=groupOwnShowcase";
+    const JOIN_GROUP_PAGE = "dk?st.cmd=altGroupJoin&st.groupId=GROUPID&st.frwd=on&st.page=1&"
+        . "_prevCmd=altGroupMain&_aid=groupProfJoin#js-dlg";
 }
