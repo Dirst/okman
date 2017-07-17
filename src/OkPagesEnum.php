@@ -28,4 +28,5 @@ class OkPagesEnum extends Enum
     const GROUP_PAGE = "dk?st.cmd=altGroupMain&st.groupId=GROUPID&_prevCmd=userAltGroups&_aid=groupOwnShowcase";
     const JOIN_GROUP_PAGE = "dk?st.cmd=altGroupJoin&st.groupId=GROUPID&st.frwd=on&st.page=1&"
         . "_prevCmd=altGroupMain&_aid=groupProfJoin#js-dlg";
+    const ACCOUNT_SETTINGS = "dk?st.cmd=userSettings&_prevCmd=userMain&_aid=leftMenuClick";
 }

@@ -91,6 +91,33 @@ class OkToolsBase
     }
 
     /**
+     * Get current account ID.
+     *
+     * @throws OkToolsNotFoundException
+     *   Thrown if no block with profile id has been found.
+     *
+     * @return string
+     */
+    public function getAccountId()
+    {
+        $accountPage = $this->attendPage(OkPagesEnum::ACCOUNT_SETTINGS);
+        $accountPageDom = str_get_html($accountPage);
+        
+        $stamp = $accountPageDom->find(".stamp", 0);
+        
+        // Check if block with profile ID exists.
+        if (!$stamp) {
+            throw new OkToolsNotFoundException(
+                "No profile ID block has been found.",
+                $accountPageDom->outertext
+            );
+        }
+
+        // Return digits only from block.
+        return preg_replace("/[^\d]+/", "", $stamp->innertext);
+    }
+
+    /**
      * Check all notifications.
      * - Accept friendship.
      * - Accept gifts.
