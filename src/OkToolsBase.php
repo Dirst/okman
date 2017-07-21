@@ -176,7 +176,7 @@ class OkToolsBase
         
         // Check event type. Friendship and Gift - Yes, others - Close.
         $eventType = $event->{"data-type"};
-        if (in_array($eventType, ['FriendshipWithRelationsRequest', 'Present'])) {
+        if (in_array($eventType, ['FriendshipWithRelationsRequest', 'Present', 'GroupNotificationFromAdmin'])) {
             $buttonPos = 0;
         } else {
             $buttonPos = 1;
@@ -420,10 +420,17 @@ class OkToolsBase
                 // Check if group disabled.
                 if (strpos($groupRow->find("a", 0)->class, "__disabled") !== false) {
                     return true;
+                } else {
+                    return false;
                 }
-            } else {
+            } elseif ($page == 1) {
                 throw new OkToolsNotFoundException(
                     "Can't find groups list. Maybe user didn't grant permissions to invite himself",
+                    $inviteGroupsPage->outertext
+                );
+            } else {
+                throw new OkToolsNotFoundException(
+                    "Group has not been found. Maybe account is not joined to group.",
                     $inviteGroupsPage->outertext
                 );
             }

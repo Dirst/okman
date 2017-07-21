@@ -45,7 +45,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function requestGet($url, array $getParameters = null)
+    public function requestGet($url, array $getParameters = [])
     {
         // check if url has been passed with parameters already.
         $url = $url . (strpos($url, "?") === false ? "?" : "&");
