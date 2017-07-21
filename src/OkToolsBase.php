@@ -374,7 +374,7 @@ class OkToolsBase
     public function canBeInvited($uid)
     {
         // Invite groups url.
-        $inviteGroupsUrl = str_replace(["USERID", "PAGENUMBER"], [$uid, $page], OkPagesEnum::INVITE_LIST_PAGE);
+        $inviteGroupsUrl = str_replace(["USERID", "PAGENUMBER"], [$uid, 1], OkPagesEnum::INVITE_LIST_PAGE);
         $inviteGroupsPage = str_get_html($this->attendPage($inviteGroupsUrl));
         
         if ($inviteGroupsPage->find("#boxPage > .dlist_top", 0)) {
@@ -385,7 +385,7 @@ class OkToolsBase
             }
         } else {
             throw new OkToolsNotFoundException(
-                "Something went wrong on 'can be invited' checking",
+                "Something went wrong on 'can be invited' checking. Can't find page marker.",
                 $inviteGroupPage->outertext
             );
         }
