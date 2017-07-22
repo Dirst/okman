@@ -6,7 +6,7 @@ use Dirst\OkTools\Exceptions\OkToolsException;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsBlockedException;
 use Dirst\OkTools\Exceptions\OkToolsNotPermittedException;
-use Dirst\OkTools\Exceptions\OkToolsCaptchaAppears;
+use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
 
 /**
  * Class for all ok tools.
@@ -554,7 +554,7 @@ class OkToolsBase
      * @param string $pageUrl.
      *   Relative url without slash.
      *
-     * @throws OkToolsCaptchaAppears
+     * @throws OkToolsCaptchaAppearsException
      *   Thrown when captcha appeared and solved.
      *
      * @return string
@@ -567,7 +567,7 @@ class OkToolsBase
         
         // Check if Captcha
         if ($pageDom->find(".captcha_content", 0)) {
-            throw new OkToolsCaptchaAppears("Captcha appeared", $pageDom->outertext);
+            throw new OkToolsCaptchaAppearsException("Captcha appeared", $pageDom->outertext);
         }
 
         return $page;
