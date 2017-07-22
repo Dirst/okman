@@ -22,6 +22,9 @@ class OkToolsBase
     // @var requestInterface object.
     private $requestBehaviour;
 
+    // @var string.
+    private $login;
+    
     /**
      * OkTookls Constructor.
      *
@@ -72,6 +75,8 @@ class OkToolsBase
                     throw new OkToolsBlockedUserException("User has been frozen.", $login, $loggedIn->outertext);
                   break;
                 default:
+                    // Set login and return html page.
+                    $this->login = $login;
                     return $loggedInPage;
             }
         } else {
@@ -116,6 +121,26 @@ class OkToolsBase
 
         // Return digits only from block.
         return preg_replace("/[^\d]+/", "", $stamp->innertext);
+    }
+
+    /**
+     * Get request behaviour.
+     *
+     * @return RequestInterface
+     *   Return Object that is used to send requests.
+     */
+    public function getRequestBehaviour() {
+        return $this->requestBehaviour;
+    }
+
+    /**
+     * Returns account login. login() method should be called before.
+     * 
+     * @return string
+     *   Account Login string. 
+     */
+    public function getAccountLogin() {
+        return $this->login;
     }
 
     /**
@@ -605,7 +630,7 @@ class OkToolsBase
         
         // Check if Captcha
         if ($pageDom->find(".captcha_content", 0)) {
-            throw new OkToolsCaptchaAppearsException("Captcha appeared", $pageDom->outertext);
+            throw new OkToolsCaptchaAppearsException("Captcha has appeared", $this->login, $pageDom->outertext);
         }
 
         return $page;

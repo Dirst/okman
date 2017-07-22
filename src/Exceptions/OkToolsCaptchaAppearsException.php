@@ -8,6 +8,6 @@ namespace Dirst\OkTools\Exceptions;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsCaptchaAppearsException extends \Exception
+class OkToolsCaptchaAppearsException extends OkToolsBlockedException
 {
 }
