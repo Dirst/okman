@@ -203,12 +203,19 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   Thrown if no form has been found.
+     * @throws OkToolsBlockedException
+     *   Thrown if group is not available.
      *
      * @return boolean
      *   True if role has been assigned.
      */
     public function assignGroupRole(OkGroupRoleEnum $role, $uid, $groupId)
     {
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
+        }
+
         // Replace placeholders with actual values.
         $moderAssignUrl = str_replace(
             ["GROUPID", "USERID", "RETURNPAGE"],
@@ -266,6 +273,9 @@ class OkToolsBase
      * @param int $page
      *   Pager position where users will be getted.
      *
+     * @throws OkToolsBlockedException
+     *   Thrown if group is not available.
+     *
      * @return array
      *   User data array or empty array if no users on a page.
      *
@@ -273,6 +283,11 @@ class OkToolsBase
      */
     public function getGroupUsers($groupId, $page = 1)
     {
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
+        }
+
         // Replace placeholders with actual values.
         $membersPageUrl = str_replace(["GROUPID", "PAGENUMBER"], [$groupId, $page], OkPagesEnum::GROUP_MEMBERS);
 
@@ -314,19 +329,22 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   Thrown if no invite form has been found.
+     * @throws OkToolsBlockedException
+     *   Thrown if group is not available.
      *
      * @return boolean
      *   True if invite has been send, False if not.
      */
     public function inviteUserToGroup($uid, $groupId)
     {
+        // Check if user can be invited.
         if (!$this->canBeInvited($uid)) {
             throw new OkToolsNotPermittedException("User didn't grant permission to invite him.");
         }
-      
-        // Check before invite.
-        if ($this->isInvited($uid, $groupId)) {
-            return true;
+        
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
         }
 
         // Replace placeholders with actual values.
@@ -367,7 +385,7 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   If no markers have been found.
-     *
+     * 
      * @return boolean
      *   True if user can be invited. False if not
      */
@@ -392,7 +410,7 @@ class OkToolsBase
     }
 
     /**
-     * Check if user already invited.
+     * Check if user already invited to group.
      *
      * @param int $uid
      *   Id of the user in OK.
@@ -401,12 +419,19 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   If no groups has been found.
+     * @throws OkToolsBlockedException
+     *   Thrown if group is not available.
      *
      * @return boolean
      *   True if user already invited.
      */
     public function isInvited($uid, $groupId)
     {
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
+        }
+
         $groupsList = true;
         $page = 1;
         while ($groupsList) {
@@ -472,13 +497,17 @@ class OkToolsBase
      * @param int $groupId
      *   Id of the group to join.
      *
-     * @throws OkToolsNotFoundException
-     *   Thrown if no form has been found.
+     * @throws OkToolsBlockedException
+     *   Thrown if group has not been found.
+     * 
+     * @return boolean
+     *   If account is in the group.
      */
     public function joinTheGroup($groupId)
-    {
-        if ($this->isJoinedToGroup($groupId)) {
-            return true;
+    {    
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
         }
  
         $joinForm = $this->joinGroupGetForm($groupId);
@@ -498,12 +527,20 @@ class OkToolsBase
      *
      * @param int $groupId
      *   Group Id.
+     * 
+     * @throws OkToolsBlockedException
+     *   Thrown if group has not been found.
      *
      * @return boolean
      *   True if account already in group.
      */
     public function isJoinedToGroup($groupId)
     {
+        // Check if group is available.
+        if (!$this->isGroupAvailable($groupId)) {
+            throw new OkToolsBlockedException("Group {$groupId} is not available");
+        }
+
         $joinForm = $this->joinGroupGetForm($groupId);
         if ($joinForm->find(".tac", 0)) {
             return true;
