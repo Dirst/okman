@@ -4,7 +4,8 @@ namespace Dirst\OkTools;
 
 use Dirst\OkTools\Exceptions\OkToolsException;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
-use Dirst\OkTools\Exceptions\OkToolsBlockedException;
+use Dirst\OkTools\Exceptions\OkToolsBlockedGroupException;
+use Dirst\OkTools\Exceptions\OkToolsBlockedUserException;
 use Dirst\OkTools\Exceptions\OkToolsNotPermittedException;
 use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
 
@@ -40,7 +41,7 @@ class OkToolsBase
      * @param string $pass
      *   Password.
      *
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedUserException
      *   Will be thrown on User blocked/frozen marker and if response is not successfull.
      * @throws OkToolsNotFoundException
      *   Will be thrown if no user marker found.
@@ -65,10 +66,10 @@ class OkToolsBase
         if ($box) {
             switch ($box->{"data-logloc"}) {
                 case OkBlockedStatusEnum::USER_BLOCKED:
-                    throw new OkToolsBlockedException("User has been blocked forever.", $loggedIn->outertext);
+                    throw new OkToolsBlockedUserException("User has been blocked forever.", $login, $loggedIn->outertext);
                   break;
                 case OkBlockedStatusEnum::USER_FROZEN:
-                    throw new OkToolsBlockedException("User has been frozen.", $loggedIn->outertext);
+                    throw new OkToolsBlockedUserException("User has been frozen.", $login, $loggedIn->outertext);
                   break;
                 default:
                     return $loggedInPage;
@@ -203,7 +204,7 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   Thrown if no form has been found.
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group is not available.
      *
      * @return boolean
@@ -213,7 +214,7 @@ class OkToolsBase
     {
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
 
         // Replace placeholders with actual values.
@@ -273,7 +274,7 @@ class OkToolsBase
      * @param int $page
      *   Pager position where users will be getted.
      *
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group is not available.
      *
      * @return array
@@ -285,7 +286,7 @@ class OkToolsBase
     {
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
 
         // Replace placeholders with actual values.
@@ -329,7 +330,7 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   Thrown if no invite form has been found.
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group is not available.
      *
      * @return boolean
@@ -344,7 +345,7 @@ class OkToolsBase
         
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
 
         // Replace placeholders with actual values.
@@ -419,7 +420,7 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   If no groups has been found.
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group is not available.
      *
      * @return boolean
@@ -429,7 +430,7 @@ class OkToolsBase
     {
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
 
         $groupsList = true;
@@ -497,7 +498,7 @@ class OkToolsBase
      * @param int $groupId
      *   Id of the group to join.
      *
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group has not been found.
      * 
      * @return boolean
@@ -507,7 +508,7 @@ class OkToolsBase
     {    
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
  
         $joinForm = $this->joinGroupGetForm($groupId);
@@ -528,7 +529,7 @@ class OkToolsBase
      * @param int $groupId
      *   Group Id.
      * 
-     * @throws OkToolsBlockedException
+     * @throws OkToolsBlockedGroupException
      *   Thrown if group has not been found.
      *
      * @return boolean
@@ -538,7 +539,7 @@ class OkToolsBase
     {
         // Check if group is available.
         if (!$this->isGroupAvailable($groupId)) {
-            throw new OkToolsBlockedException("Group {$groupId} is not available");
+            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
         }
 
         $joinForm = $this->joinGroupGetForm($groupId);

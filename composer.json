@@ -2,8 +2,7 @@
     "name": "dirst/oktools",
     "autoload": {
         "psr-4" : {
-            "Dirst\\OkTools\\" : "src/",
-            "Dirst\\OkTools\\Exceptions\\" : "src/exceptions/"
+            "Dirst\\OkTools\\" : "src/"
         }
     },
     "require": {
