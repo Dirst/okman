@@ -58,11 +58,12 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function requestPost($url, array $postData)
+    public function requestPost($url, $postData, $multipart = false)
     {
         $this->setRequest($url);
         if ($postData) {
-            curl_setopt($this->curlResource, CURLOPT_POSTFIELDS, http_build_query($postData));
+            $postData = is_array($postData) && !$multipart ? http_build_query($postData) : $postData;
+            curl_setopt($this->curlResource, CURLOPT_POSTFIELDS, $postData);
         }
 
         return $this->executeRequest();
