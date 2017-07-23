@@ -628,10 +628,14 @@ class OkToolsBase
     public function attendPage($pageUrl, $minPauseSec = 3)
     {
         // Should always wait before next request to emulate human.
-        sleep(rand(0, 4) + $minPauseSec);
+        sleep(rand(0, 3) + $minPauseSec);
 
         // Make a request.
         $page = $this->requestBehaviour->requestGet(self::URL . $pageUrl);
+        
+        // Wait after request.
+        sleep(rand(0, 3) + $minPauseSec);
+        
         $pageDom = str_get_html($page);
         
         // Check if Captcha
