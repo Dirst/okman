@@ -25,15 +25,21 @@ class OkToolsBase
     // @var string.
     private $login;
     
+    // @var string
+    private $requestPauseSec;
+    
     /**
      * OkTookls Constructor.
      *
      * @param RequestInterface $requestBehaviour
      *   Request interface object.
+     * @param int $requestPauseSec
+     *   Pause before any request to emulate human behaviour.
      */
-    public function __construct(RequestInterface $requestBehaviour)
+    public function __construct(RequestInterface $requestBehaviour, $requestPauseSec = 1)
     {
         $this->requestBehaviour = $requestBehaviour;
+        $this->requestPauseSec = $requestPauseSec;
     }
 
     /**
@@ -61,7 +67,7 @@ class OkToolsBase
             'fr.proto' => 1
         ];
 
-        $loggedInPage = $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGIN_PATH, $postData);
+        $loggedInPage = $this->sendForm(OkPagesEnum::LOGIN_PATH, $postData);
 
         // Check if user Frozen/Blocked.
         $loggedIn = str_get_html($loggedInPage);
@@ -97,7 +103,7 @@ class OkToolsBase
             'fr.posted' => 'set',
             'button_logoff' => 'Выйти'
         ];
-        $this->requestBehaviour->requestPost(self::URL . OkPagesEnum::LOGOUT_PATH, $postData);
+        $this->sendForm(OkPagesEnum::LOGOUT_PATH, $postData);
     }
 
     /**
@@ -158,11 +164,11 @@ class OkToolsBase
      */
     public function checkAllNotifications($delaySeconds = 0)
     {
-        // Check news.
-        $this->attendPage(OkPagesEnum::NEWS_PATH);
-
-        // Check guests.
-        $this->attendPage(OkPagesEnum::GUESTS_PATH);
+//        // Check news.
+//        $this->attendPage(OkPagesEnum::NEWS_PATH);
+//
+//        // Check guests.
+//        $this->attendPage(OkPagesEnum::GUESTS_PATH);
         
         // Submit notifications.
         $event = true;
@@ -219,7 +225,7 @@ class OkToolsBase
 
         // Send request for notification close or accept.
         $requestUrl = ltrim($event->find("form", 0)->action, "/");
-        $this->requestBehaviour->requestPost(self::URL . $requestUrl, $postData);
+        $this->sendForm($requestUrl, $postData);
     }
 
     /**
@@ -272,7 +278,7 @@ class OkToolsBase
           "fr.ri" => $role->getValue(),
           "button_save" => "Сохранить"
         ];
-        $this->requestBehaviour->requestPost(self::URL . ltrim($form->action, "/"), $postData);
+        $this->sendForm(ltrim($form->action, "/"), $postData);
 
         // Check if user has role.
         return $this->userHasRole($role, $uid, $groupId);
@@ -403,7 +409,7 @@ class OkToolsBase
           "fr.posted" => "set",
           "button_send" => "Отправить"
         ];
-        $this->requestBehaviour->requestPost(self::URL . ltrim($inviteForm->action, "/"), $postData);
+        $this->sendForm(ltrim($inviteForm->action, "/"), $postData);
 
         // Check if user has been invited.
         return $this->isInvited($uid, $groupId);
@@ -548,7 +554,7 @@ class OkToolsBase
           "fr.posted" => "set",
           "button_join" => "Присоединиться"
         ];
-        $this->requestBehaviour->requestPost(self::URL . ltrim($joinForm->action, "/"), $postData);
+        $this->sendForm(ltrim($joinForm->action, "/"), $postData);
         
         return $this->isJoinedToGroup($groupId);
     }
@@ -621,8 +627,6 @@ class OkToolsBase
      *
      * @param string $pageUrl.
      *   Relative url without slash.
-     * @param int $minPauseSec
-     *   Minimum pause before make a request.
      *
      * @throws OkToolsCaptchaAppearsException
      *   Thrown when captcha appeared and solved.
@@ -630,17 +634,15 @@ class OkToolsBase
      * @return string
      *   Html result.
      */
-    public function attendPage($pageUrl, $minPauseSec = 3)
+    public function attendPage($pageUrl)
     {
-        // Should always wait before next request to emulate human.
-        sleep(rand(0, 3) + $minPauseSec);
+        // Should always wait before next request to emulate human. Delay 1-2 sec.
+        $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
+        usleep($delay * 1000000);
 
         // Make a request.
         $page = $this->requestBehaviour->requestGet(self::URL . $pageUrl);
-        
-        // Wait after request.
-        sleep(rand(0, 3) + $minPauseSec);
-        
+
         $pageDom = str_get_html($page);
         
         // Check if Captcha
@@ -649,5 +651,22 @@ class OkToolsBase
         }
 
         return $page;
+    }
+
+    /**
+     * Sends post request.
+     *
+     * @param string $url
+     *   Url to sned request to.
+     * @param array $data
+     *   Post data.
+     * @return string
+     *   Html page.
+     */
+    public function sendForm($url, $data) {
+        // Should always wait before next request to emulate human. Delay 1-2 sec.
+        $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
+        usleep($delay * 1000000);
+        return $this->requestBehaviour->requestPost(self::URL . $url, $data);
     }
 }
