@@ -74,10 +74,12 @@ class OkToolsBase
                 case OkBlockedStatusEnum::USER_FROZEN:
                     throw new OkToolsBlockedUserException("User has been frozen.", $login, $loggedIn->outertext);
                   break;
-                default:
+                case "userMain":
                     // Set login and return html page.
                     $this->login = $login;
                     return $loggedInPage;
+                case "main":
+                    throw new OkToolsNotFoundException("User couldn't login.", $loggedIn->outertext);
             }
         } else {
             throw new OkToolsNotFoundException("Can't find user logged in marker.", $loggedIn->outertext);
