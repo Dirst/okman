@@ -14,6 +14,7 @@ class OkBlockedStatusEnum extends Enum
 {
     const USER_BLOCKED = 'accountBlockedByAdminStub';
     const USER_FROZEN  = 'uvPrePhoneCaptcha';
+    const USER_VERIFICATION  = 'userVerification';
     const GROUP_BLOCKED_CLASS = 'group-disabled';
     const ERROR_PAGE_CLASS    = "error-page";
 }

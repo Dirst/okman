@@ -67,12 +67,14 @@ class OkToolsBase
         $loggedIn = str_get_html($loggedInPage);
         $box = $loggedIn->find("#boxPage", 0);
         if ($box) {
-            switch ($box->{"data-logloc"}) {
+            $status = $box->{"data-logloc"};
+            switch ($status) {
                 case OkBlockedStatusEnum::USER_BLOCKED:
                     throw new OkToolsBlockedUserException("User has been blocked forever.", $login, $loggedIn->outertext);
                   break;
+                case OkBlockedStatusEnum::USER_VERIFICATION:
                 case OkBlockedStatusEnum::USER_FROZEN:
-                    throw new OkToolsBlockedUserException("User has been frozen.", $login, $loggedIn->outertext);
+                    throw new OkToolsBlockedUserException("User has been frozen status = {$status}", $login, $loggedIn->outertext);
                   break;
                 case "userMain":
                     // Set login and return html page.
@@ -164,6 +166,7 @@ class OkToolsBase
         
         // Submit notifications.
         $event = true;
+        // @TODO prevent loop to be inifinte.
         while ($event) {
             $eventsPage = $this->attendPage(OkPagesEnum::EVENTS);
             $html = str_get_html($eventsPage);
