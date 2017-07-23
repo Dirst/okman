@@ -204,7 +204,7 @@ class OkToolsBase
         
         // Check event type. Friendship and Gift - Yes, others - Close.
         $eventType = $event->{"data-type"};
-        if (in_array($eventType, ['FriendshipWithRelationsRequest', 'Present', 'GroupNotificationFromAdmin'])) {
+        if (in_array($eventType, ['FriendshipWithRelationsRequest', 'Present', 'GroupNotificationFromAdmin', 'GroupUserInvitationDecision'])) {
             $buttonPos = 0;
         } else {
             $buttonPos = 1;
