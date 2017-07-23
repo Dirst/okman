@@ -616,6 +616,8 @@ class OkToolsBase
      *
      * @param string $pageUrl.
      *   Relative url without slash.
+     * @param int $minPauseSec
+     *   Minimum pause before make a request.
      *
      * @throws OkToolsCaptchaAppearsException
      *   Thrown when captcha appeared and solved.
@@ -623,8 +625,12 @@ class OkToolsBase
      * @return string
      *   Html result.
      */
-    public function attendPage($pageUrl)
+    public function attendPage($pageUrl, $minPauseSec = 3)
     {
+        // Should always wait before next request to emulate human.
+        sleep(rand(0, 4) + $minPauseSec);
+
+        // Make a request.
         $page = $this->requestBehaviour->requestGet(self::URL . $pageUrl);
         $pageDom = str_get_html($page);
         
@@ -635,28 +641,4 @@ class OkToolsBase
 
         return $page;
     }
-
-    /**
-     * Solves captcha.
-     *
-     * @param simple_html_dom_node $captchaPage
-     *   Simple_html_dom page with captcha.
-     */
-//    private function solveCaptcha(&$captchaPage)
-//    {
-//        $img = $this->requestBehaviour->requestGet(self::URL . ltrim($captchaPage->find("#captcha", 0)->src, "/"));
-//        $solvation = null;
-//        
-//        // Some work to solve captcha.
-//        //....
-//        // Throw exception if captcha not solved.
-//        
-//        // Post captcha.
-//        $postData = [
-//          "fr.posted" => "set",
-//          "fr.code" => $solvation,
-//          "button_confirm" => "Подтвердить"
-//        ];
-//      $this->requestBehaviour->requestPost(self::URL . ltrim($captchaPage->find("form", 0)->action, "/"), $postData);
-//    }
 }
