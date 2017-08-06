@@ -1,6 +1,6 @@
 <?php
 
-namespace Dirst\OkTools;
+namespace Dirst\OkTools\Requesters;
 
 /**
  * Abstract class for different requests behaviour.

@@ -9,16 +9,21 @@ use Dirst\OkTools\Exceptions\OkToolsBlockedUserException;
 use Dirst\OkTools\Exceptions\OkToolsNotPermittedException;
 use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
 
+use Dirst\OkTools\Requesters\RequestersFactory;
+use Dirst\OkTools\Requesters\RequestersTypesEnum;
+
 /**
- * Class for all ok tools.
+ * Base class used with other Ok tools.
  *
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
 class OkToolsBase
 {
-    const URL = "https://m.ok.ru/";
-    
+    // Ok urls.
+    const M_URL = "https://m.ok.ru/";
+    const D_URL = "https://ok.ru/";
+
     // @var requestInterface object.
     private $requestBehaviour;
 
@@ -27,28 +32,19 @@ class OkToolsBase
     
     // @var string
     private $requestPauseSec;
-    
-    /**
-     * OkTookls Constructor.
-     *
-     * @param RequestInterface $requestBehaviour
-     *   Request interface object.
-     * @param int $requestPauseSec
-     *   Pause before any request to emulate human behaviour.
-     */
-    public function __construct(RequestInterface $requestBehaviour, $requestPauseSec = 1)
-    {
-        $this->requestBehaviour = $requestBehaviour;
-        $this->requestPauseSec = $requestPauseSec;
-    }
 
     /**
-     * Login to OK.RU.
+     * Construct OkToolsBase. Login to OK.RU. Define parameters.
      *
      * @param string $login
      *   User phone number.
      * @param string $pass
      *   Password.
+     * @param string $proxy
+     *   Proxy settings to use with request. type:ip:port:login:pass.
+     *   Possible types are socks5, http.
+     * @param int $requestPauseSec
+     *   Pause before any request to emulate human behaviour.
      *
      * @throws OkToolsBlockedUserException
      *   Will be thrown on User blocked/frozen marker and if response is not successfull.
@@ -58,8 +54,13 @@ class OkToolsBase
      * @return string
      *   Html page after login.
      */
-    public function login($login, $pass)
+    public function __construct($login, $pass, RequestersTypesEnum $requesterType, $proxy = null, $requestPauseSec = 1)
     {
+        // Create requester and pause.
+        $this->requestBehaviour = new RequestersFactory($proxy, $requesterType);
+        $this->requestPauseSec = $requestPauseSec;
+
+        // User authorization.
         $postData = [
             'fr.login' => $login,
             'fr.password' => $pass,
@@ -67,6 +68,7 @@ class OkToolsBase
             'fr.proto' => 1
         ];
 
+        // Make login attempt.
         $loggedInPage = $this->sendForm(OkPagesEnum::LOGIN_PATH, $postData);
 
         // Check if user Frozen/Blocked.

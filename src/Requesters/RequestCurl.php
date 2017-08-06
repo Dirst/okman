@@ -1,6 +1,6 @@
 <?php
 
-namespace Dirst\OkTools;
+namespace Dirst\OkTools\Requesters;
 
 use Dirst\OkTools\Exceptions\OkToolsResponseException;
 
