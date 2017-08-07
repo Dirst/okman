@@ -60,7 +60,9 @@ class OkToolsBase
     public function __construct($login, $pass, RequestersTypesEnum $requesterType, $proxy = null, $requestPauseSec = 1)
     {
         // Create requester and define login and pause.
-        $this->requestBehaviour = new RequestersFactory($proxy, $requesterType);
+        $factory = new RequestersFactory();
+        $this->requestBehaviour = $factory->createRequester($proxy, $requesterType);
+
         $this->requestPauseSec = $requestPauseSec;
         $this->login = $login;
 

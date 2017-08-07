@@ -28,7 +28,7 @@ class RequestersFactory
     public function createRequester($proxy = null, RequestersTypesEnum $requesterType)
     {
         // Return appropriate requester.
-        switch ($requesterType->getValue) {
+        switch ($requesterType->getValue()) {
           case RequestersTypesEnum::CURL:
           default:
             return new RequestCurl($proxy);

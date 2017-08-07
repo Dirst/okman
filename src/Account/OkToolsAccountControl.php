@@ -83,7 +83,7 @@ class OkToolsAccountControl
      */
     private function retrieveAreaUrl(OkToolsAccountAreaEnum $area)
     {
-        $lastPageDom = simple_html_dom($this->okToolsBase->getLastAttendedPage());
+        $lastPageDom = str_get_html($this->okToolsBase->getLastAttendedPage());
         if ($areaLink = $lastPageDom->find("a[aria-label={$area->getValue()}]", 0)) {
             return ltrim($areaLink->href, '/');
         } else {
@@ -97,7 +97,7 @@ class OkToolsAccountControl
      * - Accept gifts.
      * - Close other notifications.
      */
-    public function checkAllNotifications($delaySeconds = 0)
+    public function checkAllNotifications()
     {       
         // Submit notifications.
         $event = true;
@@ -116,7 +116,7 @@ class OkToolsAccountControl
     /**
      * Check one notification.
      *
-     * @param HtmlDomNode $event
+     * @param simple_html_dom_node $event
      *   Node of the DOM. li item of the event.
      *
      * @throws OkToolsNotFoundException
