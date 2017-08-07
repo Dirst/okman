@@ -2,7 +2,7 @@
 
 namespace Dirst\OkTools\Account;
 
-use Dirst\OkTools\OkToolsBase;
+use Dirst\OkTools\OkToolsBaseControl;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
 
 /**
@@ -11,22 +11,8 @@ use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsAccountControl
+class OkToolsAccountControl extends OkToolsBaseControl
 {
-    // @var OkToolsBase object.
-    private $okToolsBase;
-
-    /**
-     * Init Account control object.
-     *
-     * @param OkToolsBase $okTools
-     *   Ok Tools Base object.
-     */
-    public function __construct(OkToolsBase $okTools)
-    {
-        $this->okToolsBase = $okTools;
-    }
-
     /**
      * Get current account ID.
      *
