@@ -34,7 +34,7 @@ interface RequestInterface
      * @param mixed $postData
      *   Data to post. json string or array.
      * @param boolean $multipart
-     *   Send as multipart.   
+     *   Send as multipart.
      *
      * @throw OkToolsResponseException
      *   Will be thrown if response code != 200.

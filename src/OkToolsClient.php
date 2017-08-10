@@ -18,7 +18,7 @@ use Dirst\OkTools\Requesters\RequestersTypesEnum;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsBase
+class OkToolsClient
 {
     // Ok urls.
     const M_URL = "https://m.ok.ru/";
@@ -37,7 +37,7 @@ class OkToolsBase
     private $lastPage;
 
     /**
-     * Construct OkToolsBase. Login to OK.RU. Define parameters.
+     * Construct OkToolsClient. Login to OK.RU. Define parameters.
      *
      * @param string $login
      *   User phone number.
@@ -135,17 +135,19 @@ class OkToolsBase
      * @return RequestInterface
      *   Return Object that is used to send requests.
      */
-    public function getRequestBehaviour() {
+    public function getRequestBehaviour()
+    {
         return $this->requestBehaviour;
     }
 
     /**
      * Returns account login. login() method should be called before.
-     * 
+     *
      * @return string
-     *   Account Login string. 
+     *   Account Login string.
      */
-    public function getAccountLogin() {
+    public function getAccountLogin()
+    {
         return $this->login;
     }
 
@@ -343,7 +345,7 @@ class OkToolsBase
      *
      * @throws OkToolsNotFoundException
      *   If no markers have been found.
-     * 
+     *
      * @return boolean
      *   True if user can be invited. False if not
      */
@@ -457,7 +459,7 @@ class OkToolsBase
      *
      * @throws OkToolsBlockedGroupException
      *   Thrown if group has not been found.
-     * 
+     *
      * @return boolean
      *   If account is in the group.
      */
@@ -485,7 +487,7 @@ class OkToolsBase
      *
      * @param int $groupId
      *   Group Id.
-     * 
+     *
      * @throws OkToolsBlockedGroupException
      *   Thrown if group has not been found.
      *
@@ -594,7 +596,8 @@ class OkToolsBase
      * @return string
      *   Html page.
      */
-    public function sendForm($url, $data, $desktop = false) {
+    public function sendForm($url, $data, $desktop = false)
+    {
         // Define url.
         $baseUrl = $desktop ? self::D_URL : self:: M_URL;
       

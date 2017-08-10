@@ -2,7 +2,7 @@
 
 namespace Dirst\OkTools\Account;
 
-use Dirst\OkTools\OkToolsBase;
+use Dirst\OkTools\OkToolsBaseControl;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
 
 /**
@@ -11,22 +11,8 @@ use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsAccountControl
+class OkToolsAccountControl extends OkToolsBaseControl
 {
-    // @var OkToolsBase object.
-    private $okToolsBase;
-
-    /**
-     * Init Account control object.
-     *
-     * @param OkToolsBase $okTools
-     *   Ok Tools Base object.
-     */
-    public function __construct(OkToolsBase $okTools)
-    {
-        $this->okToolsBase = $okTools;
-    }
-
     /**
      * Get current account ID.
      *
@@ -59,14 +45,14 @@ class OkToolsAccountControl
      *
      * @param OkToolsAccountAreaEnum $area
      *   Area enum.
-     * 
+     *
      * @return string
      *   Area html page string.
      */
     public function seeAreaPage(OkToolsAccountAreaEnum $area)
     {
         $areaUrl = $this->retrieveAreaUrl($area);
-        return $this->okToolsBase->attendPage($areaUrl);
+        return $this->OkToolsClient->attendPage($areaUrl);
     }
 
     /**
@@ -77,13 +63,13 @@ class OkToolsAccountControl
      *
      * @throws OkToolsNotFoundException
      *   Thrown when couldn't find link for area.
-     * 
+     *
      * @return string
      *   Area page url withoul left slash.
      */
     private function retrieveAreaUrl(OkToolsAccountAreaEnum $area)
     {
-        $lastPageDom = str_get_html($this->okToolsBase->getLastAttendedPage());
+        $lastPageDom = str_get_html($this->OkToolsClient->getLastAttendedPage());
         if ($areaLink = $lastPageDom->find("a[aria-label={$area->getValue()}]", 0)) {
             return ltrim($areaLink->href, '/');
         } else {
@@ -98,7 +84,7 @@ class OkToolsAccountControl
      * - Close other notifications.
      */
     public function checkAllNotifications()
-    {       
+    {
         // Submit notifications.
         $event = true;
         // @TODO prevent loop to be inifinte.
@@ -152,7 +138,7 @@ class OkToolsAccountControl
 
         // Send request for notification close or accept.
         $requestUrl = ltrim($event->find("form", 0)->action, "/");
-        $this->okToolsBase->sendForm($requestUrl, $postData);
+        $this->OkToolsClient->sendForm($requestUrl, $postData);
     }
 
     /**
@@ -161,12 +147,13 @@ class OkToolsAccountControl
      * @return array
      *   Notification types array.
      */
-    private function getNotificationTypes() {
-      return [
+    private function getNotificationTypes()
+    {
+        return [
           'FriendshipWithRelationsRequest',
           'Present',
           'GroupNotificationFromAdmin',
           'GroupUserInvitationDecision'
-      ];
+        ];
     }
 }

@@ -26,7 +26,7 @@ class OkToolsBlockedException extends OkToolsException
      */
     public function __construct($message, $itemId, $html = null, $code = 0, Throwable $previous = null)
     {
-      parent::__construct($message, $html, $code, $previous);
-      $this->values['itemId'] = $itemId;
+        parent::__construct($message, $html, $code, $previous);
+        $this->values['itemId'] = $itemId;
     }
 }
