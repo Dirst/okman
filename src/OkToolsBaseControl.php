@@ -12,7 +12,7 @@ use Dirst\OkTools\OkToolsClient;
  */
 abstract class OkToolsBaseControl
 {
-  // @var OkToolsClient object.
+    // @var OkToolsClient object.
     protected $OkToolsClient;
 
     /**
