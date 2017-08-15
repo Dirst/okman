@@ -136,7 +136,17 @@ class RequestCurl implements RequestInterface
             curl_setopt($this->curlResource, CURLOPT_SSL_VERIFYHOST, false);
         }
     }
-    
+
+    /**
+     * Callback to parse header line and insert in array.
+     *
+     * @param Resource $curl
+     *   Curl Object.
+     * @param string $headerLine
+     *   One header line.
+     * @return int
+     *   Length of header line.
+     */
     private function readHeaders($curl, $headerLine)
     {
         list($name, $value) = explode(": ", $headerLine, 2);
@@ -167,10 +177,12 @@ class RequestCurl implements RequestInterface
      */
     public function setHeaders(array $headers)
     {
+        // Iterate through headers array and make format according to curl requirement.
         foreach ($headers as $name => $header) {
           $curlHeaders[] = "$name: $header"; 
         }
         
+        // Set new http headers.
         curl_setopt($this->curlResource, CURLOPT_HTTPHEADER, $curlHeaders);
     }
 }

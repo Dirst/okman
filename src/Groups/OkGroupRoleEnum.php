@@ -1,6 +1,6 @@
 <?php
 
-namespace Dirst\OkTools;
+namespace Dirst\OkTools\Groups;
 
 use MyCLabs\Enum\Enum;
 

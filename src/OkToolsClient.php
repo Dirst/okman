@@ -240,60 +240,6 @@ class OkToolsClient
 //    }
 
     /**
-     * Get all users of the OK group.
-     *
-     * @param int $groupId
-     *   Id of an OK group.
-     * @param int $page
-     *   Pager position where users will be getted.
-     *
-     * @throws OkToolsBlockedGroupException
-     *   Thrown if group is not available.
-     *
-     * @return array
-     *   User data array or empty array if no users on a page.
-     *
-     * @TODO define user properties to return.
-     */
-//    public function getGroupUsers($groupId, $page = 1)
-//    {
-//        // Check if group is available.
-//        if (!$this->isGroupAvailable($groupId)) {
-//            throw new OkToolsBlockedGroupException("Group {$groupId} is not available", $groupId);
-//        }
-//
-//        // Replace placeholders with actual values.
-//        $membersPageUrl = str_replace(["GROUPID", "PAGENUMBER"], [$groupId, $page], OkPagesEnum::GROUP_MEMBERS);
-//
-//        // Get page with members list.
-//        $membersPage = str_get_html($this->attendPage($membersPageUrl));
-//
-//        // Get all members block.
-//        $membersList = $membersPage->find("#member-list", 0);
-//
-//        // If no members on the page - return empty array.
-//        if (!$membersList) {
-//            return [];
-//        }
-//
-//        // Collect all members information.
-//        $usersArray = [];
-//        foreach ($membersList->find("li.item") as $oneMember) {
-//        // Get Id of a user.
-//            $out = null;
-//            preg_match("/friendId=(\d+)/", $oneMember->find("a.clickarea", 0)->href, $out);
-//            $usersArray[] = [
-//                    "id" => $out[1],
-//                    "name" => $oneMember->find("span.emphased", 0)->plaintext,
-//                    "online" => $oneMember->find("span.ic_w", 0) ? true : false
-//                ];
-//        }
-//
-//        // Return users array.
-//        return $usersArray;
-//    }
-
-    /**
      * Invite user to a group.
      *
      * @param int $uid
@@ -654,7 +600,7 @@ class OkToolsClient
         $page =  $this->requestBehaviour->requestPost($baseUrl . $url, $data);
         $this->lastPage = $page;
         
-        // Set newly retrieved token from headers.
+        // Set newly retrieved post token from headers.
         $headers = $this->requestBehaviour->getHeaders();
         if (isset($headers['tkn'])) {
             $this->postToken = $headers['tkn'];
@@ -662,13 +608,4 @@ class OkToolsClient
 
         return $page;
     }
-
-//    private function setPseudoHeaders($path, $method = "GET")
-//    {
-//        $headers[':authority'] = "ok.ru";
-//        $headers[':method'] = $method;
-//        $headers[':path'] = $path;
-//        $headers[':scheme'] = 'https';
-//        $this->requestBehaviour->setHeaders($headers);
-//    }
 }
