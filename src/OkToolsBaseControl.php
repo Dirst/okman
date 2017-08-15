@@ -3,6 +3,7 @@
 namespace Dirst\OkTools;
 
 use Dirst\OkTools\OkToolsClient;
+use Dirst\OkTools\Requesters\RequestersTypesEnum;
 
 /**
  * Abstract class for other control classes.

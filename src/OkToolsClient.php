@@ -35,6 +35,9 @@ class OkToolsClient
 
     // @var string
     private $lastPage;
+    
+    // @var string
+    private $postToken;
 
     /**
      * Construct OkToolsClient. Login to OK.RU. Define parameters.
@@ -127,6 +130,17 @@ class OkToolsClient
     public function getLastAttendedPage()
     {
         return $this->lastPage;
+    }
+
+    /**
+     * Get Last post token.
+     *
+     * @return string
+     *   Post token.
+     */
+    public function getLastToken()
+    {
+        return $this->postToken;
     }
 
     /**
@@ -562,7 +576,7 @@ class OkToolsClient
     public function attendPage($pageUrl, $desktop = false)
     {
         // Define url.
-        $baseUrl = $desktop ? self::D_URL : self:: M_URL;
+        $baseUrl = $desktop ? self::D_URL : self::M_URL;
 
         // Should always wait before next request to emulate human. Delay 1-2 sec.
         $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
@@ -579,8 +593,34 @@ class OkToolsClient
 
         // Save last page.
         $this->lastPage = $page;
+        
+        // Set first postToken for desktop.
+        if ($desktop) {
+            $this->postToken = $this->retrievePostToken($page);
+        }
 
         return $page;
+    }
+
+    /**
+     * Retireve token from html page.
+     *
+     * @param string $attendedPage
+     *   Html page in desktop.
+     *
+     * @return string
+     *   Post Token string.
+     */
+    protected function retrievePostToken(&$attendedPage)
+    {
+        // For perfomance purposes extract part of html string with token.
+        $tokenExpressionPos = strpos($attendedPage, "OK.tkn.set");
+        if (!$tokenExpressionPos) {
+          return "";
+        }
+        $tokenExprString = substr($attendedPage, $tokenExpressionPos, 100);
+        
+        return preg_replace("/(OK\.tkn\.set\(')(.*)('\);.*)/s", "$2", $tokenExprString);
     }
 
     /**
@@ -605,10 +645,30 @@ class OkToolsClient
         $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
         usleep($delay * 1000000);
         
+        // Set token header for desktop.
+        if ($desktop) {
+            $this->requestBehaviour->setHeaders(["tkn" => $this->getLastToken()]);
+        }
+        
         // Send request and remember last page.
         $page =  $this->requestBehaviour->requestPost($baseUrl . $url, $data);
         $this->lastPage = $page;
+        
+        // Set newly retrieved token from headers.
+        $headers = $this->requestBehaviour->getHeaders();
+        if (isset($headers['tkn'])) {
+            $this->postToken = $headers['tkn'];
+        }
 
         return $page;
     }
+
+//    private function setPseudoHeaders($path, $method = "GET")
+//    {
+//        $headers[':authority'] = "ok.ru";
+//        $headers[':method'] = $method;
+//        $headers[':path'] = $path;
+//        $headers[':scheme'] = 'https';
+//        $this->requestBehaviour->setHeaders($headers);
+//    }
 }

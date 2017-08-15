@@ -42,7 +42,7 @@ interface RequestInterface
      * @return mixed
      *   Html response string or false on failure.
      */
-    public function requestPost($url, $postData, $multipart = false);
+    public function requestPost($url, array $postData, $multipart = false);
 
     /**
      * Gets headers from current request.
@@ -66,5 +66,5 @@ interface RequestInterface
      * @param array $headers
      *   Array of headers.
      */
-    public function setHeaders($headers);
+    public function setHeaders(array $headers);
 }

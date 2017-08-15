@@ -17,9 +17,13 @@ class RequestCurl implements RequestInterface
 
     // @var string proxy.
     private $proxy;
+    
+    private $responseHeaders;
 
-    const USER_AGENT = "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) "
-        . "ppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
+    const USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) "
+        . "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+//        "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) "
+//        . "ppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
   
     /**
      * Create curl resource and assign it with proxy to variables.
@@ -58,7 +62,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function requestPost($url, $postData, $multipart = false)
+    public function requestPost($url, array $postData, $multipart = false)
     {
         $this->setRequest($url);
         if ($postData) {
@@ -80,6 +84,7 @@ class RequestCurl implements RequestInterface
      */
     private function executeRequest()
     {
+        $this->responseHeaders = [];
         $result = curl_exec($this->curlResource);
 
         // Check if response code is OK.
@@ -109,6 +114,8 @@ class RequestCurl implements RequestInterface
         curl_setopt($this->curlResource, CURLOPT_POST, true);
         curl_setopt($this->curlResource, CURLOPT_USERAGENT, self::USER_AGENT);
         curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
+        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2);
+        curl_setopt($this->curlResource, CURLOPT_HEADERFUNCTION, [$this, 'readHeaders']);
 
         // Save cookies in memory until curl_close  is not called. Windows use NULL.
         curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? null : '/dev/null');
@@ -129,13 +136,22 @@ class RequestCurl implements RequestInterface
             curl_setopt($this->curlResource, CURLOPT_SSL_VERIFYHOST, false);
         }
     }
+    
+    private function readHeaders($curl, $headerLine)
+    {
+        list($name, $value) = explode(": ", $headerLine, 2);
+        if (trim($name)) {
+            $this->responseHeaders[$name] = $value;
+        }
+        return strlen($headerLine);
+    }
 
     /**
      * {@inheritdoc}
      */
     public function getHeaders()
     {
-        return curl_getinfo($this->curlResource, CURLINFO_HEADER_OUT);
+        return $this->responseHeaders;
     }
 
     /**
@@ -149,8 +165,12 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function setHeaders($headers)
+    public function setHeaders(array $headers)
     {
-        curl_setopt($this->curlResource, CURLOPT_HTTPHEADER, $headers);
+        foreach ($headers as $name => $header) {
+          $curlHeaders[] = "$name: $header"; 
+        }
+        
+        curl_setopt($this->curlResource, CURLOPT_HTTPHEADER, $curlHeaders);
     }
 }
