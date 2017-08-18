@@ -26,6 +26,18 @@ abstract class OkToolsBaseControl
     {
         $this->OkToolsClient = $okTools;
     }
+    
+    /**
+     * Returns  ok tools client object.
+     *s
+     * @return OkToolsClient
+     *   Client object.
+     */
+    public function getOkToolsClient()
+    {
+        return $this->OkToolsClient;
+    }
+    
 
     /**
      * Construct New object with new OktoolsClient insides.

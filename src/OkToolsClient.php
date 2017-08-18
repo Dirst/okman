@@ -38,6 +38,12 @@ class OkToolsClient
     
     // @var string
     private $postToken;
+    
+    // @var string
+    private $gwtDesktopHash;
+  
+    // @var array
+    private $periodicDesktopManagerData;
 
     /**
      * Construct OkToolsClient. Login to OK.RU. Define parameters.
@@ -163,6 +169,27 @@ class OkToolsClient
     public function getAccountLogin()
     {
         return $this->login;
+    }
+    
+    /**
+     * Returns Gwt hash.
+     *
+     * @return string
+     *   Gwt hash
+     */
+    public function getGwtDesktopHash()
+    {
+        return $this->gwtHash;
+    }
+
+    /**
+     * Get periodic manager data.
+     *
+     * @return array
+     *   Periodic manager data.
+     */
+    public function getPeriodicManagerData() {
+        return $this->periodicDesktopManagerData;
     }
 
     /**
@@ -540,8 +567,20 @@ class OkToolsClient
         // Save last page.
         $this->lastPage = $page;
         
-        // Set first postToken for desktop.
+        // Desktop mode routines.
         if ($desktop) {
+
+            // Set gwt hash for desktop.
+            if (!$this->gwtDesktopHash) {
+                $this->gwtDesktopHash = $this->retrieveGwtDesktopHash();
+            }
+
+            // Set periodic desktop manager.
+            if (!$this->periodicDesktopManagerData) {
+                $this->periodicDesktopManagerData = $this->retrievePeriodicManagerData();
+            }
+
+            // Set first postToken for desktop.
             $this->postToken = $this->retrievePostToken($page);
         }
 
@@ -570,6 +609,107 @@ class OkToolsClient
     }
 
     /**
+     * Retrieve gwt hash.
+     * 
+     * @throws OkToolsNotFoundException
+     *   If gwt hash has not been found.
+     *
+     * @return string
+     *   Gwt hash
+     */
+    protected function retrieveGwtDesktopHash()
+    {
+        $pageDom = str_get_html($this->lastPage);
+        $gwtHashPos = strpos($pageDom->outertext, "gwtHash");
+        if (!$gwtHashPos) {
+            throw new OkToolsNotFoundException("Gwt Hash not found", $pageDom->outertext);
+        }
+        $gwtHashString = substr($pageDom->outertext, $gwtHashPos, 100);
+        
+        return preg_replace("/(gwtHash:\")([^\"]*)(.+)/", "$2", $gwtHashString);
+    }
+    
+    /**
+     * Retrieves periodic manager data.
+     *
+     * @throws OkToolsNotFoundException
+     *   If no gwt hash has been found or couldn't decode manager data. or no required param is found in init data.
+     * 
+     * @return array
+     *   Retrieved periodic manager data
+     */
+    private function retrievePeriodicManagerData() {
+      // Retrieve init periodic info.
+        $periodicManagerDataInit = $this->getInitPeriodicData();
+        
+        // Check for gwt hash.
+        if (!$this->gwtDesktopHash) {
+            throw new OkToolsNotFoundException("Couldn't find gwthash for periodic manager data request", $this->lastPage);
+        }
+        
+        // Check if time values are present.
+        if (!isset($periodicManagerDataInit['params']) && !isset($periodicManagerDataInit['params']['st.mpCheckTime'])) {
+            throw new OkToolsNotFoundException("Couldn't find time values for periodic manager data request.", var_export($periodicManagerDataInit));
+        }
+        
+        // Pause before request 1 - 5 seconds.
+        sleep(rand(1, 5));
+        
+        // Packing the request.
+        $postData = [
+            "cpLCT" => 0,
+            "tlb.act" => "news",
+            "st.mpCheckTime" => $periodicManagerDataInit['params']['st.mpCheckTime'],
+            "blocks" => "TD,NTF,MPC,VCP,FeedbackGrowl,FSC",
+            "p_NLP" => 0
+        ];
+        
+        // Send request.
+        $response = $this->sendForm("push?cmd=PeriodicManager&gwt.requested={$this->gwtDesktopHash}&p_sId=0", $postData, true);
+        $periodicManagerData = preg_replace("/\<\!--([^\<\!]+)--\>.+/", "$1", $response);
+        
+        // Decode data string.
+        $periodicManagerData = json_decode($periodicManagerData, true);
+
+        // Check if data exists.
+        if (!$periodicManagerData) {
+            throw new OkToolsNotFoundException("Couldn't decode periodic manager data.", $periodicManagerData);
+        }
+        
+        return $periodicManagerData;
+    }
+    
+    /**
+     * Returns init periodic manager data.
+     *
+     * @throws OkToolsNotFoundException
+     *   Thrown when No init periodic data retrieved.
+     * 
+     * @return array
+     *   Init data for periodic manager.
+     */
+    private function getInitPeriodicData() {
+        // Convert page to dom. 
+        $pageDom = str_get_html($this->lastPage);
+        $periodicData = $pageDom->find("#hook_PeriodicHook_PeriodicManager", 0);
+        if (!$periodicData) {
+            throw new OkToolsNotFoundException("Couldn't find periodic data manager info", $pageDom->outertext);
+        }
+        
+        // Decode init data for periodic manager
+        $periodicManagerDataInit = str_replace(["<!--", "-->"], "", $periodicData->innertext);
+        $periodicManagerDataInit = json_decode($periodicManagerDataInit, true);
+
+        // Check if data exists.
+        if (!$periodicManagerDataInit) {
+            throw new OkToolsNotFoundException("Coouldn't decode init periodic manager data.", $periodicData->innertext);
+        }
+
+        return $periodicManagerDataInit;
+    }
+    
+
+    /**
      * Sends post request.
      *
      * @param string $url
@@ -591,7 +731,7 @@ class OkToolsClient
         $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
         usleep($delay * 1000000);
         
-        // Set token header for desktop.
+        // Set token header for desktop before request.
         if ($desktop) {
             $this->requestBehaviour->setHeaders(["tkn" => $this->getLastToken()]);
         }
@@ -608,4 +748,19 @@ class OkToolsClient
 
         return $page;
     }
+
+    /**
+     * Logging for desktop operations.
+     *
+     * @param array $logData
+     *   Data to log.
+     */
+    public function gwtLog($logData) {
+        // Pause before log 1 - 3 sec.
+        sleep(rand(1, 3));
+        
+        // Send log request.
+        $data['a'] = json_encode($logData);
+        $this->sendForm("gwtlog", $data, true);
+    } 
 }
