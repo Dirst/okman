@@ -16,16 +16,16 @@ class RequestersFactory
     /**
      * Creates new requester object.
      *
+     * @param RequestersTypesEnum $requesterType
+     *   Type of requester to create.
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     * @param RequestersTypesEnum $requesterType
-     *   Type of requester to create.
      *
      * @return RequestInterface
      *   New Requester object.
      */
-    public function createRequester($proxy = null, RequestersTypesEnum $requesterType)
+    public function createRequester(RequestersTypesEnum $requesterType, $proxy = null)
     {
         // Return appropriate requester.
         switch ($requesterType->getValue()) {

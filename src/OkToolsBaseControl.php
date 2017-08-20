@@ -37,33 +37,4 @@ abstract class OkToolsBaseControl
     {
         return $this->OkToolsClient;
     }
-    
-
-    /**
-     * Construct New object with new OktoolsClient insides.
-     *
-     * @param string $login
-     *   User phone number.
-     * @param string $pass
-     *   Password.
-     * @param string $proxy
-     *   Proxy settings to use with request. type:ip:port:login:pass.
-     *   Possible types are socks5, http.
-     * @param int $requestPauseSec
-     *   Pause before any request to emulate human behaviour.
-     *
-     * @return OkToolsBaseControl
-     *   Control object with Client initialized inside.
-     */
-    public static function initWithClient(
-        $login,
-        $pass,
-        RequestersTypesEnum $requesterType,
-        $proxy = null,
-        $requestPauseSec = 1
-    ) {
-    
-        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $requestPauseSec);
-        return new static($okToolsClient);
-    }
 }

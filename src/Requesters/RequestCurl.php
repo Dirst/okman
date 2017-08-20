@@ -3,6 +3,7 @@
 namespace Dirst\OkTools\Requesters;
 
 use Dirst\OkTools\Exceptions\OkToolsResponseException;
+use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
 
 /**
  * Curl request methods implementation.
@@ -88,7 +89,7 @@ class RequestCurl implements RequestInterface
         $result = curl_exec($this->curlResource);
 
         // Check if response code is OK.
-        if ($this->getResponseCode() == 200) {
+        if ($this->getResponseCode() == RequestersHttpCodesEnum::HTTP_SUCCESS) {
             return $result;
         } else {
             throw new OkToolsResponseException(
@@ -114,7 +115,7 @@ class RequestCurl implements RequestInterface
         curl_setopt($this->curlResource, CURLOPT_POST, true);
         curl_setopt($this->curlResource, CURLOPT_USERAGENT, self::USER_AGENT);
         curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
-        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2);
+//        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2); Sometimes couldn't make a request.
         curl_setopt($this->curlResource, CURLOPT_HEADERFUNCTION, [$this, 'readHeaders']);
 
         // Save cookies in memory until curl_close  is not called. Windows use NULL.
@@ -179,7 +180,7 @@ class RequestCurl implements RequestInterface
     {
         // Iterate through headers array and make format according to curl requirement.
         foreach ($headers as $name => $header) {
-          $curlHeaders[] = "$name: $header"; 
+            $curlHeaders[] = "$name:$header";
         }
         
         // Set new http headers.

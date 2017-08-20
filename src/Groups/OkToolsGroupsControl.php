@@ -7,9 +7,13 @@ use Dirst\OkTools\Exceptions\OkToolsResponseException;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsPageNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsBlockedGroupException;
+use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
 use Dirst\OkTools\Requesters\RequestersTypesEnum;
 use Dirst\OkTools\OkToolsClient;
 use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
+use Dirst\OkTools\Groups\OkToolsGroupRoleEnum;
+use Dirst\OkTools\Exceptions\OkToolsInviteGroupNotFoundException;
+use Dirst\OkTools\Exceptions\OkToolsInviteFailedException;
 
 /**
  * Groups control for account.
@@ -19,10 +23,16 @@ use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
  */
 class OkToolsGroupsControl extends OkToolsBaseControl
 {
+    // @var string group page url constant.
     const GROUP_BASE_URL = "group";
-    protected $membersPage;
+    
+    // @var string members page url.
+    const GROUP_MEMBERS_BASE_URL = "members";
+    
+    // @var string html of group page
     protected $groupFrontPage;
-    protected $periodicManagerData;
+    
+    // @var int
     protected $groupId;
 
     /**
@@ -34,16 +44,13 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   Group Id to init the group.
      */
     public function __construct(OkToolsClient $okTools, $groupId)
-    {   
+    {
         // Init client and group id.
         parent::__construct($okTools);
         $this->groupId = $groupId;
         
         // Init group page.
-        $groupPage = $this->initGroupPage();
-        
-        // Set periodic manager data.
-        $this->setPeriodicManagerData($groupPage);
+        $this->groupFrontPage = $this->initGroupPage();
     }
 
     /**
@@ -77,202 +84,229 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         return new static($okToolsClient, $groupId);
     }
 
-//    protected function setPeriodicManagerData($page)
-//    {
-//        $periodicData = $page->find("#hook_PeriodicHook_PeriodicManager", 0);
-//        if (!$periodicData) {
-//            throw new OkToolsNotFoundException("Couldn't find periodic data manager info", $groupPage->outertext);
-//        }
-//        
-//        $periodicData = str_replace(["<!--", "-->"], "", $periodicData->innertext);
-//        $this->periodicManagerData = json_decode($periodicData, true);
-//
-//        if (!$this->periodicManagerData) {
-//            // @TODO Exception.
-//        }
-//    }
-//    
-//    /**
-//     * Get group members.
-//     *
-//     * @param type $groupId
-//     * @param type $page
-//     * @return type
-//     * @throws OkToolsNotFoundException
-//     */
-//    public function getMembers($groupId, $page = 1)
-//    {
-//        $usersArray = [];
-//        if ($page == 1) {
-//            $membersPageDom = $this->initMembersPage($groupId);
-//            $usersArray = $this->getFirstPageGroupMembers($membersPageDom, $groupId);
-//        }
-//        else {
-//            if (!$this->membersPage) {
-//                $membersPageDom = $this->initMembersPage($groupId);
-//            }
-//
-//            $usersArray = $this->getSecondaryPageGroupMembers($membersPageDom, $groupId, $page);
-//        }
-//
-//        return $usersArray;
-//    }
-// 
-//    /**
-//     * Get first group page members.
-//     * 
-//     * @notice To reduce the risk to be banned 1 page 
-//     * request for members should be done as always via Get request instead of other pages POST request
-//     *
-//     * @param simple_html_dom_node $membersPageDom
-//     *   Members Page Dom.
-//     *
-//     * @throws OkToolsNotFoundException 
-//     *   Thrown if users cards block not found.
-//     *
-//     * @return array
-//     *   Array of users [id, name, online]
-//     */
-//    protected function getFirstPageGroupMembers($membersPageDom, $groupId)
-//    {
-//        $usersBlock = $membersPageDom->find("#hook_Loader_GroupMembersResultsBlockLoader > ul", 0);
-//        if (!$usersBlock) {
-//            throw new OkToolsNotFoundException("Couldn't find Groups members on 1 page for $groupId group", $usersBlock->outertext);
-//        }
-//
-//        return $this->getUsersArray($usersBlock);
-//    }
-//
-//    protected function getSecondaryPageGroupMembers($membersPageDom, $groupId, $page)
-//    {
-//        $gwtHash = $this->getGwtHash($membersPageDom);
-//        $postUrl = self::GROUP_BASE_URL . "/$groupId/members?cmd=GroupMembersResultsBlock&"
-//            . "gwt.requested=$gwtHash&st.cmd=altGroupMembers&st.groupId=$groupId&";
-//
-//        $postData = [
-//            "fetch" => false,
-//            "st.page" => $page,
-//            "st.loaderid" => "GroupMembersResultsBlockLoader"
-//        ];
-//        $usersBlock = $this->OkToolsClient->sendForm($postUrl, $postData, true);
-//        return $this->getUsersArray(str_get_html($usersBlock));
-//    }
-//
-//    protected function getUsersArray($usersBlock)
-//    {
-//        $usersArray = [];
-//        foreach ($usersBlock->find(".cardsList_li") as $userBlock) {
-//            if ($userBlock->find(".add-stub", 0)) {
-//                continue;
-//            }
-//
-//            $usersArray[] = [
-//                'id' => str_replace("/profile/", "", $userBlock->find("a.photoWrapper", 0)->href),
-//                'name' => $userBlock->find(".card_add a.o", 0)->plaintext,
-//                'online' => $userBlock->find("span.ic-online", 0) ? true : false
-//            ];
-//        }
-//
-//        return $usersArray;
-//    }
-//
+    
+    /**
+     * Get group members.
+     *
+     * @param int $page
+     *   Page number to request members.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   If no users Block is found.
+     *
+     * @return array
+     *   Array of users [id, name, online]
+     */
+    public function getMembers($page = 1)
+    {
+        $usersArray = [];
+        if ($page == 1) {
+            $membersUrl = $this->getFirstPageGroupMembersUrl();
+            $postData = [];
+        } else {
+            // ADd post parameters.
+            $postData = [
+                "fetch" => "false",
+                "st.page" => $page,
+                "st.loaderid" => "GroupMembersResultsBlockLoader"
+            ];
+            $membersUrl = $this->getSecondaryPageGroupMembersUrl();
+        }
+        
+        // Request members html.
+        $membersPage = $this->OkToolsClient->sendForm($membersUrl, $postData, true);
+        
+        // Convert members page to DOM.
+        $membersPageDom = str_get_html($membersPage);
 
-//
-//    /**
-//     * Get members page DOM
-//     *
-//     * @param type $groupId
-//     * @return type
-//     * @throws OkToolsBlockedGroupException
-//     * @throws OkToolsResponseException
-//     */
-//    protected function initMembersPage($groupId)
-//    {
-//      try {
-//          $membersPage = $this->OkToolsClient->attendPage(self::GROUP_BASE_URL . "/$groupId/members", true);
-//      }
-//      catch (OkToolsResponseException $ex) {
-//          if ($ex->responseCode == 404) {
-//              //  @TODO new exception.
-//              throw new OkToolsBlockedGroupException("Couldn't find members page", $groupId, $ex->html);
-//          }
-//          else {
-//              throw $ex;
-//          }
-//      }
-//      
-////      $this->membersPage = $membersPage;
-//      return str_get_html($membersPage);
-//    }
-//
+        // Get users block from response.
+        $usersBlock = $membersPageDom->find("li.cardsList_li");
+        
+        // Exception if users block is not exists.
+        if (!$usersBlock) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find Groups members on $page page for $this->groupId group", $membersPage);
+        }
+
+        // Return users array.
+        return $this->getUsersArray($usersBlock);
+    }
+ 
+    /**
+     * Get first page members url.
+     *
+     * @notice To reduce the risk to be banned 1 page request for members should be done before next pages requests.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   Thrown if members link is not found.
+     *
+     * @return string
+     *   Url for the initial page with users.
+     */
+    protected function getFirstPageGroupMembersUrl()
+    {
+        // Get members link from group page.
+        $groupPageDom = str_get_html($this->groupFrontPage);
+        $membersLink = $groupPageDom->find("ul.u-menu > .group_members > a.ucard-v_list_i", 0);
+        
+        // Check if link exists.
+        if (!$membersLink) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find members link for $this->groupId group", $this->groupFrontPage);
+        }
+        
+        // Get ajax request prameters.
+        $url = $membersLink->href . "&" . $this->getAjaxRequestUrlParams();
+        
+        // Add previous page parameter.
+        $urlPrevious = [
+            "st.cmd" => "altGroupMain",
+            "st.groupId" => $this->groupId,
+            "st.fFeed" => "on",
+            "st.vpl.mini" => "false"
+        ];
+
+        // Add previous url.
+        $url .= "&gwt.previous=" . urlencode(http_build_query($urlPrevious));
+
+        // Return url.
+        return $url;
+    }
+
+    /**
+     * Get url for secondary page members request.
+     *
+     * @return string
+     *   Url for users block secondary page request.
+     */
+    protected function getSecondaryPageGroupMembersUrl()
+    {
+        // Parameters to send.
+        $params = [
+            "cmd" => "GroupMembersResultsBlock",
+            "st.cmd" => "altGroupMembers",
+            "st.groupId" => $this->groupId,
+        ];
+        
+        // Construct url.
+        $url = self::GROUP_BASE_URL . "/" . $this->groupId . "/" . self::GROUP_MEMBERS_BASE_URL;
+        $url .= "?" . http_build_query($params) . "&" . $this->getAjaxRequestUrlParams($noPsid = true);
+        
+        return $url;
+    }
+
+    /**
+     * Returns users array.
+     *
+     * @param simple_html_dom_node $usersBlock
+     *   List of li elements with users.
+     *
+     * @return array
+     *   Array of users.
+     */
+    protected function getUsersArray($usersBlock)
+    {
+        $usersArray = [];
+        foreach ($usersBlock as $userBlock) {
+            if ($userBlock->find(".add-stub", 0)) {
+                continue;
+            }
+
+            $usersArray[] = [
+                'id' => preg_replace("/.+st\.friendId=(\d+)&.+/", "$1", $userBlock->find("a.photoWrapper", 0)->href),
+                'name' => $userBlock->find(".card_add a.o", 0)->plaintext,
+                'online' => $userBlock->find("span.ic-online", 0) ? true : false,
+                'link' => $userBlock->find("a.photoWrapper", 0)->href
+            ];
+        }
+
+        return $usersArray;
+    }
+
     /**
      * Join the group.
      *
-     * @param type $groupId
-     * @throws OkToolsNotFoundException
+     * @throws OkToolsDomItemNotFoundException
+     *   If no join link is found.
      */
     public function joinTheGroup()
     {
-        $groupPageDom = $this->initGroupPage();
+        // Convert to dom & find join button.
+        $groupPageDom = str_get_html($this->groupFrontPage);
         $joinLink = $groupPageDom->find('a[href*="AltGroupTopCardButtonsJoin"]', 0);
+        
+        // If no join link is found.
         if (!$joinLink) {
-           throw new OkToolsNotFoundException("Couldn't find join link in group - $groupId", $groupPageDom->outertext);
+            throw new OkToolsDomItemNotFoundException("Couldn't find join link in group - $this->groupId", $groupPageDom->outertext);
         }
-
-        $groupJoinedPage = $this->OkToolsClient->sendForm($joinLink->href, [], true);
+        
+        // Set up url and send request.
+        $jsUrl = $joinLink->href . "&" . $this->getAjaxRequestUrlParams();
+        $this->OkToolsClient->sendForm($jsUrl, [], true);
+        
+        // Reinit group page.
+        $this->groupFrontPage = $this->initGroupPage();
     }
-//
-//    /**
-//     * Check if account already joined to group.
-//     *
-//     * @param type $groupId
-//     * @return boolean
-//     * @throws OkToolsNotFoundException
-//     */
-//    public function isJoinedToGroup()
-//    {
-//        $groupPageDom = $this->initGroupPage($groupId);
-//        $exitLink = $groupPageDom->find("a[href*='GroupJoinDropdownBlock&amp;st.jn.act=EXIT']", 0);
-//        $joinLink = $groupPageDom->find('a[href*="AltGroupTopCardButtonsJoin"]', 0);
-//        switch (true) {
-//            case $exitLink:
-//              return true;
-//              break;
-//            case $joinLink:
-//              return false;
-//              break;
-//            default:
-//              throw new OkToolsNotFoundException("Couldn't Grooup exit/join links - $groupId", $groupPageDom->outertext);
-//        }        
-//    }
-//
+
+    /**
+     * Check if account already joined to group.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   Couldn't find exit/join links.
+     *
+     * @return boolean
+     *   Joined/not joined flag.
+     */
+    public function isJoinedToGroup()
+    {
+        // Convert Group front page.
+        $groupPageDom = str_get_html($this->groupFrontPage);
+        
+        // retrieve links that soulg exists for each case.
+        $exitLink = $groupPageDom->find("a[href*='GroupJoinDropdownBlock&amp;st.jn.act=EXIT']", 0);
+        $joinLink = $groupPageDom->find('a[href*="AltGroupTopCardButtonsJoin"]', 0);
+        
+        // Check if case link exists.
+        switch (true) {
+            // True if joined.
+            case $exitLink:
+                return true;
+              break;
+            
+            // False if join link exists.
+            case $joinLink:
+                return false;
+              break;
+            
+            // Throw exception if no links are found.
+            default:
+                throw new OkToolsDomItemNotFoundException("Couldn't Grooup exit/join links - $this->groupId", $groupPageDom->outertext);
+        }
+    }
+
     /**
      * Init Group front page.
-     * 
+     *
      * @throws OkToolsBlockedGroupException
      *   Thrown if group is blocked.
      * @throws OkToolsResponseException
      *   Thrown if request error and it is not 404.
      * @throws OkToolsDomItemNotFoundException
-     *   Thrown when Disabled marker not found. 
+     *   Thrown when Disabled marker not found.
      * @throws OkToolsPageNotFoundException
      *   Thrown when group page not found.
-     * 
+     *
      * @return  string
      *   Group page html.
      */
-    protected function initGroupPage() 
+    protected function initGroupPage()
     {
         // Make a desktop request to group page.
         try {
             $groupPage = $this->OkToolsClient->attendPage(self::GROUP_BASE_URL . "/$this->groupId", true);
-        }
-        catch (OkToolsResponseException $ex) {
+        } catch (OkToolsResponseException $ex) {
             // If responded with NOT FOUND throw not found exception.
             if ($ex->responseCode == RequestersHttpCodesEnum::HTTP_NOT_FOUND) {
                 throw new OkToolsPageNotFoundException("Couldn't find the group", $this->groupId, $ex->html);
-            }
-            // If another code throw request exception to up level.
+            } // If another code throw request exception to up level.
             else {
                 throw $ex;
             }
@@ -294,31 +328,305 @@ class OkToolsGroupsControl extends OkToolsBaseControl
 
         return $groupPage;
     }
+
+    /**
+     * Cancel group membership for account.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   If no exit link found.
+     */
+    public function leftTheGroup()
+    {
+        // Convert to dom & find exit button.
+        $groupPageDom = str_get_html($this->groupFrontPage);
+        $exitLink = $groupPageDom->find("a[href*='GroupJoinDropdownBlock&amp;st.jn.act=EXIT']", 0);
+
+        // If no exit link is exists.
+        if (!$exitLink) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find exit link in group - $this->groupId", $groupPageDom->outertext);
+        }
+
+        // Set up url and send request.
+        $jsUrl = $exitLink->href . "&" . $this->getAjaxRequestUrlParams();
+        $this->OkToolsClient->sendForm($jsUrl, [], true);
+  
+        // Reinit group page.
+        $this->groupFrontPage = $this->initGroupPage();
+    }
+
+    /**
+     * Get ajax requred url parameters.
+     *
+     * @param boolean $noPsid
+     *   True if no p_sid should be returned.
+     *
+     * @return string
+     *   Url paramters as string to append to url.
+     */
+    protected function getAjaxRequestUrlParams($noPsid = false)
+    {
+        // Get parameters for request.
+        $gwtHash = $this->OkToolsClient->getGwtDesktopHash();
+
+        // Set up URL & Send request.
+        $params =  [
+            "st.vpl.mini" => "false",
+            "gwt.requested" => $gwtHash,
+        ];
+        
+        // If paramters requested without p_sid.
+        if (!$noPsid) {
+            $periodicManagerData = $this->OkToolsClient->getPeriodicManagerData();
+            $params["p_sId"] = $periodicManagerData['p_sId'];
+        }
+        
+        return http_build_query($params);
+    }
+
+    /**
+     * Check if it is possible to ivite user.
+     *
+     * @param int $userId
+     *   User to check.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   Thrown if unexpected popup data has been returned.
+     *
+     * @return boolean
+     *   Whether or not user can be invited.
+     */
+    public function canBeInvited($userId)
+    {
+        // Retrieve popup.
+        $popup = $this->retrieveMemberPopup(
+            $userId,
+            $this->getInviteRequestParameters($userId)
+        );
+        
+        // Convert to dom.
+        $popupDom = str_get_html($popup);
+        
+        // Check if user can be invited according to returned in popup.
+        if ($popupDom->plaintext == "Пользователь не принимает приглашения в группы") {
+            return false;
+        } elseif ($popupDom->find("#hook_Modal_popLayerModal", 0)) {
+            return true;
+        } else {
+            throw new OkToolsDomItemNotFoundException("Couldn't find popup to check if user $userId can be invited from $this->groupId group", $popup);
+        }
+    }
+
+    /**
+     * Perform invite operation.
+     *
+     * @notice Currently assume that account is moderator for group to invite to.
+     *
+     * @param int $userId
+     *   User id to invite.
+     * @param int $groupId
+     *   Group Id for invite to.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   If couldn't find popup canvas with invites.
+     * @throws OkToolsInviteGroupNotFoundException
+     *   If no invite group found. Possible issues - account is not in invite acceptor OR already invited.
+     * @throws OkToolsInviteFailedException
+     *   No successfull response after invite.
+     */
+    public function inviteUserToGroup($userId, $groupId)
+    {
+        // Retrieve members popup.
+        $inviteCanvas = $this->retrieveMemberPopup(
+            $userId,
+            $this->getInviteRequestParameters($userId)
+        );
+        $inviteCanvasDom = str_get_html($inviteCanvas)->find(".portlet_b", 0);
+
+        // Throw if no invite canvas is found.
+        if (!$inviteCanvasDom) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find invite popup canvas - $this->groupId", "");
+        }
+
+        // Check if user is already invited.
+        $groupItem = $inviteCanvasDom->find("a[href*=$groupId]", 0);
+        if (!$groupItem) {
+            throw new OkToolsInviteGroupNotFoundException("Couldn't find group $groupId to invite from $this->groupId", $inviteCanvas);
+        }
+
+        // Construct url.
+        $url = ltrim($groupItem->href, "/");
+        $url .=  "&" . $this->getDeviceSizeParams() . "&" . $this->getAjaxRequestUrlParams();
+        
+        // Send request.
+        $inviteResult = $this->OkToolsClient->sendForm($url, [], true);
+        
+        // Check invite result.
+        $inviteResultDom = str_get_html($inviteResult);
+        if (!$inviteResultDom->find(".tip_cnt", 0)) {
+            throw new OkToolsInviteFailedException("Couldn't find appropriate response for user invite", $inviteResult);
+        }
+    }
 //
-//    /**
-//     * Cancel group membership for account.
-//     *
-//     * @param type $groupId
-//     * @throws OkToolsNotFoundException
-//     */
-//    public function leftTheGroup()
+//    public function isInvited($userId)
 //    {
-//        $groupPageDom = $this->initGroupPage($groupId);
-//        $exitLink = $groupPageDom->find("a[href*='GroupJoinDropdownBlock&amp;st.jn.act=EXIT']", 0);
-//        if (!$exitLink) {
-//           throw new OkToolsNotFoundException("Couldn't find exit link in group - $groupId", $groupPageDom->outertext);
-//        }
-//
-//        $groupJoinedPage = $this->OkToolsClient->sendForm($exitLink->href, [], true);
-//    }
-//
-//    public function inviteUserToGroup($userId)
-//    {
-//        
-//    }
-//
-//    public function assignGroupRole(OkGroupRoleEnum $role, $uid)
-//    {
-////        if 
-//    }
+//    }      
+    
+    /**
+     * Assign role to the user in the current group.
+     *
+     * @param OkToolsGroupRoleEnum $role
+     *   Group role object.
+     *
+     * @param int $userId
+     *   User id to assign role to.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   If moderator assign form is not found.
+     */
+    public function assignGroupRole(OkToolsGroupRoleEnum $role, $userId)
+    {
+        // Get popup and retrieve form from it.
+        $assignRolePopup = $this->retrieveMemberPopup(
+            $userId,
+            $this->getAssignModeratorRequestParameters($userId)
+        );
+        $form = str_get_html($assignRolePopup)->find("form", 0);
+
+        // THrow if no moderator assign form is found.
+        if (!$form) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find assign role form - $this->groupId", "");
+        }
+
+        // Pack post parameters.
+        $postData = [
+            "gwt.requested" => $this->OkToolsClient->getGwtDesktopHash(),
+            "st.layer.posted" => "set",
+            "st.layer.index" => $role->getValue(),
+            "button_grant" => "clickOverGWT"
+        ];
+
+        // Construct url and send request.
+        $url = ltrim($form->action, "/") . "&" . $this->getAjaxRequestUrlParams();
+        $this->OkToolsClient->sendForm($url, $postData, true);
+    }
+
+    /**
+     * Get popup for user.
+     *
+     * @param int $userId
+     *   User id to retrieve popup for.
+     *
+     * @param array $params
+     *   Parameters to set for request.
+     *
+     * @throws OkToolsDomItemNotFoundException
+     *   Thrown if no html has been receieved.
+     */
+    protected function retrieveMemberPopup($userId, $params)
+    {
+        // Construct url.
+        $url = self::GROUP_BASE_URL . "/" . $this->groupId . "/" . self::GROUP_MEMBERS_BASE_URL;
+        $url .= "?" . http_build_query($params) . "&" . $this->getAjaxRequestUrlParams();
+        $url .= "&" . $this->getDeviceSizeParams();
+
+        // Retrieve popup layer.
+        $popup = $this->OkToolsClient->sendForm($url, [], true);
+
+        // Throw if no popup is recieved.
+        if (!$popup) {
+            throw new OkToolsDomItemNotFoundException("Couldn't retrieve popup - $this->groupId", "");
+        }
+
+        // Log popup action.
+        $this->logPopupAction();
+
+        return $popup;
+    }
+
+    /**
+     * Returns parameters for invite popup request.
+     *
+     * @param int $userId
+     *   User id to get parameters for.
+     *
+     * @return array
+     *   Return invite popup request paramerers.
+     */
+    protected function getInviteRequestParameters($userId)
+    {
+        // Parameters for assign role poplayer.
+        $params = [
+            "cmd" => "PopLayer",
+            "st.cmd" => "altGroupMembers",
+            "st.groupId" => $this->groupId,
+            "st.layer.cmd" => "InviteUserToGroup2",
+            "st.layer.friendId" => $userId,
+            "st._aid" => "SM_AltGroup_Invite"
+        ];
+        return $params;
+    }
+    
+    /**
+     * Returns parameters fpr Assign moderator popup request.
+     *
+     * @param invite $userId
+     *   User id to get parameters for.
+     *
+     * @return array
+     *   Return Moderator assign popup request paramerers.
+     */
+    protected function getAssignModeratorRequestParameters($userId)
+    {
+        // Parameters for assign role poplayer.
+        $params = [
+            "cmd" => "PopLayer",
+            "st.cmd" => "altGroupMembers",
+            "st.groupId" => $this->groupId,
+            "st.layer.cmd" => "PopLayerGrantAltGroupModerators",
+            "st.layer.groupId" => $this->groupId,
+            "st.layer.id" => $userId,
+            "st._aid" => "SM_Group_MakeModerator"
+        ];
+        return $params;
+    }
+    
+    /**
+     * Return device size params.
+     *
+     * @return string
+     *   Query params for device size.
+     */
+    protected function getDeviceSizeParams()
+    {
+        return http_build_query([
+            "st.layer._bw" => rand(1300, 1905),
+            "st.layer._bh" => rand(300, 600)
+        ]);
+    }
+
+    /**
+     * Log popup actions.
+     */
+    protected function logPopupAction()
+    {
+        // Close popup, open popup, shortcut menu open.
+        $data = [
+            'layerManager' => [
+                'unregister' => [
+                    'modal_hook' => 1,
+                ],
+                'register' => [
+                    'modal_hook' => 1,
+                ],
+            ],
+            'feed' => [
+                'shortcutMenu' => [
+                    'second' => rand(1, 5),
+                ],
+            ],
+        ];
+
+        // Send log request.
+        $this->OkToolsClient->gwtLog($data);
+    }
 }

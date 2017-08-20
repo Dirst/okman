@@ -10,7 +10,7 @@ use MyCLabs\Enum\Enum;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkGroupRoleEnum extends Enum
+class OkToolsGroupRoleEnum extends Enum
 {
     const MODERATOR = 0;
 }
