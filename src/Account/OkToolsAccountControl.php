@@ -15,6 +15,18 @@ use Dirst\OkTools\OkToolsClient;
  */
 class OkToolsAccountControl extends OkToolsBaseControl
 {
+    protected $navigationPage;
+    
+    /**
+     * {@inheridoc}
+     */
+    public function __construct(OkToolsClient $okTools) {
+      parent::__construct($okTools);
+      
+      // Save front page.
+      $this->navigationPage = $this->OkToolsClient->attendPage(null);
+    }
+
     /**
      * Get current account ID.
      *
@@ -54,7 +66,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
     public function seeAreaPage(OkToolsAccountAreaEnum $area)
     {
         $areaUrl = $this->retrieveAreaUrl($area);
-        return $this->OkToolsClient->attendPage($areaUrl);
+        $this->navigationPage = $this->OkToolsClient->attendPage($areaUrl);
     }
 
     /**
@@ -71,7 +83,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
      */
     private function retrieveAreaUrl(OkToolsAccountAreaEnum $area)
     {
-        $lastPageDom = str_get_html($this->OkToolsClient->getLastAttendedPage());
+        $lastPageDom = str_get_html($this->navigationPage);
         if ($areaLink = $lastPageDom->find("a[aria-label={$area->getValue()}]", 0)) {
             return ltrim($areaLink->href, '/');
         } else {
