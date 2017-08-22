@@ -67,6 +67,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
     {
         $areaUrl = $this->retrieveAreaUrl($area);
         $this->navigationPage = $this->OkToolsClient->attendPage($areaUrl);
+        return $this->navigationPage;
     }
 
     /**
