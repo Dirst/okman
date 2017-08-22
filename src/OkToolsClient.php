@@ -409,7 +409,7 @@ class OkToolsClient
         // Set newly retrieved post token from headers.
         $headers = $this->requestBehaviour->getHeaders();
         if (isset($headers['TKN'])) {
-            $this->postToken = $headers['TKN'];
+            $this->postToken = trim($headers['TKN']);
         }
 
         return $page;

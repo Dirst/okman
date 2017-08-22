@@ -501,7 +501,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         $postData = [
             "gwt.requested" => $this->OkToolsClient->getGwtDesktopHash(),
             "st.layer.posted" => "set",
-            "st.layer.index" => $role->getValue(),
+            "st.layer.index" => (string)$role->getValue(),
             "button_grant" => "clickOverGWT"
         ];
 
