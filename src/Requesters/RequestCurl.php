@@ -150,7 +150,7 @@ class RequestCurl implements RequestInterface
      */
     private function readHeaders($curl, $headerLine)
     {
-        list($name, $value) = explode(": ", $headerLine, 2);
+        @list($name, $value) = explode(": ", $headerLine, 2);
         if (trim($name)) {
             $this->responseHeaders[$name] = $value;
         }
