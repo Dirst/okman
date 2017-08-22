@@ -5,6 +5,7 @@ namespace Dirst\OkTools\Account;
 use Dirst\OkTools\OkToolsBaseControl;
 use Dirst\OkTools\Exceptions\OkToolsNotFoundException;
 use Dirst\OkTools\Requesters\RequestersTypesEnum;
+use Dirst\OkTools\OkToolsClient;
 
 /**
  * OK Account control class.
