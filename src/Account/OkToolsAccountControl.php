@@ -16,17 +16,48 @@ use Dirst\OkTools\OkToolsClient;
 class OkToolsAccountControl extends OkToolsBaseControl
 {
     protected $navigationPage;
+    protected $xBuildHeader;
+    protected $xTokenHeader;
+    protected $pushStateId;
     
     /**
      * {@inheridoc}
      */
     public function __construct(OkToolsClient $okTools) {
       parent::__construct($okTools);
-      
+
       // Save front page.
       $this->navigationPage = $this->OkToolsClient->attendPage(null);
+
+      // Retrieve needed headers.
+      $this->xBuildHeader = $this->OkToolsClient->retrieveParameterFromPage("build\"", $this->navigationPage);
+      $this->xTokenHeader = $this->OkToolsClient->retrieveParameterFromPage("xtkn\"", $this->navigationPage);
     }
 
+    /**
+     * Retrieve and Calculate push state
+     * 
+     * @param string $page
+     *   Html page to parse.
+     * 
+     * @return string
+     *   Push state id.
+     */
+    protected function getPushStateId($page = null)
+    {
+        $pushStateId = $this->OkToolsClient->retrieveParameterFromPage("pushStateId\"", $page ? $page : $this->navigationPage);
+        
+        // Calculation for big numbers.
+        $pushStateId = $this->pushStateId;
+        
+        // Emulate precision problem in js for floating numbers.
+        $lastDigits = (int) substr($pushStateId, strlen($pushStateId) - 3);
+        $lastDigits = round($lastDigits / 100) * 100;
+
+        // Return result.
+        return substr($pushStateId, 0, strlen($pushStateId) - 3) . $lastDigits;
+    }
+    
     /**
      * Get current account ID.
      *
@@ -65,9 +96,55 @@ class OkToolsAccountControl extends OkToolsBaseControl
      */
     public function seeAreaPage(OkToolsAccountAreaEnum $area)
     {
+        // Get area url.
         $areaUrl = $this->retrieveAreaUrl($area);
-        $this->navigationPage = $this->OkToolsClient->attendPage($areaUrl);
-        return $this->navigationPage;
+        
+        // Set up headers.
+        $headers = [
+          "X-Build" => $this->xBuildHeader,
+          "X-Nav-Kind"  => "FORWARD",
+          "X-Requested-With" => "XMLHttpRequest"
+        ];
+        
+        // Navigate to page
+        $result = $this->OkToolsClient->attendPage($areaUrl, false, $headers);
+//        $this->pushStateId = $this->getPushStateId($result);
+        
+        // Send push gateway request.
+//        $this->pushGatewayCtrlRequest($areaUrl);
+        return $result;
+    }
+    
+    /**
+     * Push request to gateway CTrl. 
+     * 
+     * @notice This is possible to get new push state. 
+     * But we not really retrieve. We just need to show that we not a robot.
+     * 
+     * @parm string $areaUrl
+     *   Url of the are that has be attended currently.
+     */
+    protected function pushGatewayCtrlRequest($areaUrl)
+    {
+        $headers = [
+          "need.new.stateId" => "0",
+          "X-Requested-With" => "XMLHttpRequest",
+          "X-XTKN" => $this->xTokenHeader
+        ];
+        
+        // Url to push.
+        $url = "push?st.cmd=PushGatewayCtrl&reqBlocks=[HeaderLogo]&p_sId=" . $this->pushStateId;
+        
+        // Get all URL parameters in array.
+        $urlParameters = explode("&amp;", $areaUrl);
+        
+        // We need to append 2 URL parameter to gateway push url.
+        if (isset($urlParameters[1]) && strpos($urlParameters[1], "_") !== 0) {
+            $url .= $urlParameters[1];
+        }
+        
+        // Send post request.
+        $this->OkToolsClient->sendForm($url, [], false, $headers);
     }
 
     /**
@@ -97,19 +174,42 @@ class OkToolsAccountControl extends OkToolsBaseControl
      * - Accept friendship.
      * - Accept gifts.
      * - Close other notifications.
+     * 
+     * @param int|null $count
+     *   Notifications count to check. null = all.
      */
-    public function checkAllNotifications()
+    public function checkNotifications($count = null)
     {
         // Submit notifications.
-        $event = true;
-        // @TODO prevent loop to be inifinte.
-        while ($event) {
-            $eventsPage = $this->seeAreaPage(OkToolsAccountAreaEnum::NOTIFICATIONS());
-            $html = str_get_html($eventsPage);
-            $event = $html->find("#events-list", 0);
+        $eventsPage = $this->seeAreaPage(OkToolsAccountAreaEnum::NOTIFICATIONS());
+        $html = str_get_html($eventsPage);
+        $events = $html->find("#events-list li.notify");
+        
+        // If no events have been found return.
+        if (!$events) {
+            return;
+        }
 
-            if ($event && $event = $event->find("li.notify", 0)) {
-                $this->checkNotification($event);
+        // Until counter (if $count passed) or events exceed.
+        while (count($events) && ($count === null || $count !== 0)) {
+            // Select random event index.
+            $randomIndex = rand(0, count($events) - 1);
+
+            // Select event.
+            $event = $events[$randomIndex];
+
+            // Update events array.
+            unset($events[$randomIndex]);
+
+            // Update array keys.
+            $events = array_values($events);
+
+            // Check notification.
+            $this->checkNotification($event);
+
+            // Count iterations if not 0 passed,
+            if ($count) {
+                $count--;
             }
         }
     }
@@ -153,7 +253,13 @@ class OkToolsAccountControl extends OkToolsBaseControl
 
         // Send request for notification close or accept.
         $requestUrl = ltrim($event->find("form", 0)->action, "/");
-        $this->OkToolsClient->sendForm($requestUrl, $postData);
+        
+        // Set up headers and send request.
+        $headers = [
+            "X-Requested-With" => "XMLHttpRequest",
+            "X-XTKN" => $this->xTokenHeader
+        ];
+        $this->OkToolsClient->sendForm($requestUrl, $postData, false, $headers);
     }
 
     /**

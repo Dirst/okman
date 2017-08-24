@@ -206,6 +206,8 @@ class OkToolsClient
      *   Relative url without slash.
      * @param boolean $desktop
      *   Use desktop base url or mobile flag.
+     * @param array $headers
+     *   Headers to set before request.
      *
      * @throws OkToolsCaptchaAppearsException
      *   Thrown when captcha appeared and solved.
@@ -213,7 +215,7 @@ class OkToolsClient
      * @return string
      *   Html result.
      */
-    public function attendPage($pageUrl, $desktop = false)
+    public function attendPage($pageUrl, $desktop = false, $headers = [])
     {
         // Define url.
         $baseUrl = $desktop ? self::D_URL : self::M_URL;
@@ -221,6 +223,11 @@ class OkToolsClient
         // Should always wait before next request to emulate human. Delay 1-2 sec.
         $delay = ( rand(0, 100) / 100 ) + (float) $this->requestPauseSec;
         usleep($delay * 1000000);
+
+        // Set headers before request.
+        if (!empty($headers)) {
+            $this->requestBehaviour->setHeaders($headers);
+        }
 
         // Make a request And convert to DOM.
         $page = $this->requestBehaviour->requestGet($baseUrl . $pageUrl);
@@ -236,19 +243,29 @@ class OkToolsClient
         
         // Desktop mode routines.
         if ($desktop) {
-            // Set gwt hash for desktop.
-            if (!$this->gwtDesktopHash) {
-                $this->gwtDesktopHash = $this->retrieveGwtDesktopHash();
-            }
-
-            // Set first postToken for desktop.
-            $this->postToken = $this->retrievePostToken($page);
-
-            // Set periodic manager data.
-            $this->periodicDesktopManagerData = $this->retrievePeriodicManagerData();
+            $this->desktopAttendRoutines($page);
         }
 
         return $page;
+    }
+    
+    /**
+     * Perform desktop GET request operations.
+     * 
+     * @param string $page
+     *   Html Page after request.
+     */
+    protected function desktopAttendRoutines(&$page) {
+      // Set gwt hash for desktop.
+      if (!$this->gwtDesktopHash) {
+          $this->gwtDesktopHash = $this->retrieveParameterFromPage("gwtHash");
+      }
+
+      // Set first postToken for desktop.
+      $this->postToken = $this->retrievePostToken($page);
+
+      // Set periodic manager data.
+      $this->periodicDesktopManagerData = $this->retrievePeriodicManagerData();
     }
 
     /**
@@ -273,24 +290,29 @@ class OkToolsClient
     }
 
     /**
-     * Retrieve gwt hash.
+     * Retrieve gparameter by name from html.
      *
+     * @param string $paramName
+     *   Param name on a page.
+     * @param string $page
+     *   Page to retrieve parameter from.
+     * 
      * @throws OkToolsNotFoundException
      *   If gwt hash has not been found.
      *
      * @return string
      *   Gwt hash
      */
-    protected function retrieveGwtDesktopHash()
+    public function retrieveParameterFromPage($paramName, $page = null)
     {
-        $pageDom = str_get_html($this->lastPage);
-        $gwtHashPos = strpos($pageDom->outertext, "gwtHash");
-        if (!$gwtHashPos) {
-            throw new OkToolsNotFoundException("Gwt Hash not found", $pageDom->outertext);
+        $pageDom = str_get_html($page ? $page : $this->lastPage);
+        $paramPos = strpos($pageDom->outertext, $paramName);
+        if (!$paramPos) {
+            throw new OkToolsNotFoundException("Parameter not found, $paramName", $pageDom->outertext);
         }
-        $gwtHashString = substr($pageDom->outertext, $gwtHashPos, 100);
+        $paramString = substr($pageDom->outertext, $paramPos, 100);
         
-        return preg_replace("/(gwtHash:\")([^\"]*)(.+)/", "$2", $gwtHashString);
+        return preg_replace("/($paramName:\")([^\"]*)(.+)/", "$2", $paramString);
     }
     
     /**
@@ -384,11 +406,13 @@ class OkToolsClient
      *   Post data.
      * @param boolean $desktop
      *   Use desktop base url or mobile flag.
+     * @param array $headers
+     *   Headers to set before request.
      *
      * @return string
      *   Html page.
      */
-    public function sendForm($url, $data, $desktop = false)
+    public function sendForm($url, $data, $desktop = false, $headers = [])
     {
         // Define url.
         $baseUrl = $desktop ? self::D_URL : self:: M_URL;
@@ -399,9 +423,14 @@ class OkToolsClient
         
         // Set token header for desktop before request.
         if ($desktop) {
-            $this->requestBehaviour->setHeaders(["tkn" => $this->getLastToken()]);
+            $headers['tkn'] = $this->getLastToken();
         }
         
+        // Set headers before request.
+        if (!empty($headers)) {
+            $this->requestBehaviour->setHeaders($headers);
+        }
+
         // Send request and remember last page.
         $page =  $this->requestBehaviour->requestPost($baseUrl . $url, $data);
         $this->lastPage = $page;

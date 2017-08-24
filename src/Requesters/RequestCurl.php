@@ -21,8 +21,10 @@ class RequestCurl implements RequestInterface
     
     private $responseHeaders;
 
-    const USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) "
-        . "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+    const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36";
+        
+//        "Mozilla/5.0 (Windows NT 6.1) "
+//        . "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
 //        "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) "
 //        . "ppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
   
