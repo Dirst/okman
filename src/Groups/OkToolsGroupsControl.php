@@ -67,6 +67,8 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   Pause before any request to emulate human behaviour.
      * @param int $groupId
      *   Group Id to init the group.
+     * @param string $userAgent
+     *   User agent to be used in requests.
      *
      * @return OkToolsBaseControl
      *   Control object with Client initialized inside.
@@ -77,10 +79,11 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         RequestersTypesEnum $requesterType,
         $groupId,
         $proxy = null,
+        $userAgent = null,
         $requestPauseSec = 1
     ) {
     
-        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $requestPauseSec);
+        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $requestPauseSec);
         return new static($okToolsClient, $groupId);
     }
 

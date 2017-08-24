@@ -21,17 +21,19 @@ class RequestersFactory
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     *
+     * @param string $userAgent
+     *   User agent to be used in requests.
+     * 
      * @return RequestInterface
      *   New Requester object.
      */
-    public function createRequester(RequestersTypesEnum $requesterType, $proxy = null)
+    public function createRequester(RequestersTypesEnum $requesterType, $proxy = null, $userAgent = null)
     {
         // Return appropriate requester.
         switch ($requesterType->getValue()) {
             case RequestersTypesEnum::CURL:
             default:
-                return new RequestCurl($proxy);
+                return new RequestCurl($proxy, $userAgent);
         }
     }
 }

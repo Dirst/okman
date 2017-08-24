@@ -290,6 +290,8 @@ class OkToolsAccountControl extends OkToolsBaseControl
      *   Possible types are socks5, http.
      * @param int $requestPauseSec
      *   Pause before any request to emulate human behaviour.
+     * @param string $userAgent
+     *   User agent to be used in requests.
      *
      * @return OkToolsBaseControl
      *   Control object with Client initialized inside.
@@ -299,9 +301,10 @@ class OkToolsAccountControl extends OkToolsBaseControl
         $pass,
         RequestersTypesEnum $requesterType,
         $proxy = null,
+        $userAgent = null,
         $requestPauseSec = 1
     ) {
-        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $requestPauseSec);
+        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $requestPauseSec);
         return new static($okToolsClient);
     }
 }

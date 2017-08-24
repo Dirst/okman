@@ -57,6 +57,8 @@ class OkToolsClient
      *   Possible types are socks5, http.
      * @param int $requestPauseSec
      *   Pause before any request to emulate human behaviour.
+     * @param string $userAgent
+     *   User agent to be used in requests.
      *
      * @throws OkToolsBlockedUserException
      *   Will be thrown on User blocked/frozen marker and if response is not successfull.
@@ -66,11 +68,17 @@ class OkToolsClient
      * @return string
      *   Html page after login.
      */
-    public function __construct($login, $pass, RequestersTypesEnum $requesterType, $proxy = null, $requestPauseSec = 1)
-    {
+    public function __construct(
+        $login,
+        $pass,
+        RequestersTypesEnum $requesterType, 
+        $proxy = null, 
+        $userAgent = null,
+        $requestPauseSec = 1
+    ) {
         // Create requester and define login and pause.
         $factory = new RequestersFactory();
-        $this->requestBehaviour = $factory->createRequester($requesterType, $proxy);
+        $this->requestBehaviour = $factory->createRequester($requesterType, $proxy, $userAgent);
 
         $this->requestPauseSec = $requestPauseSec;
         $this->login = $login;
