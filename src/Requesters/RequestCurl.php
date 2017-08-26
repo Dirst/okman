@@ -28,6 +28,9 @@ class RequestCurl implements RequestInterface
     // @var string
     protected $userAgent;
     
+    // @var string
+    protected $cookiesFilePath;
+    
     
     /**
      * Create curl resource and assign it with proxy to variables.
@@ -44,6 +47,17 @@ class RequestCurl implements RequestInterface
         $this->curlResource = curl_init();
         $this->proxy = $proxy;
         $this->userAgent = $userAgent ? $userAgent : self::USER_AGENT;
+        $this->cookiesFilePath = null;
+    }
+    
+    /**
+     * Sets cookie file.
+     *
+     * @param string $cookieFilePath
+     *   Sets cookie file path.
+     */
+    public function setCookieFile($cookieFilePath) {
+        $this->cookiesFilePath = $cookieFilePath;
     }
 
     /**
@@ -122,12 +136,18 @@ class RequestCurl implements RequestInterface
         curl_setopt($this->curlResource, CURLOPT_POST, true);
         curl_setopt($this->curlResource, CURLOPT_USERAGENT, $this->userAgent);
         curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
-//        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2); Sometimes couldn't make a request.
+//        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2); Sometimes couldn't make a request. Unstable.
         curl_setopt($this->curlResource, CURLOPT_HEADERFUNCTION, [$this, 'readHeaders']);
 
-        // Save cookies in memory until curl_close  is not called. Windows use NULL.
-        curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? null : '/dev/null');
-        
+        // Set cookies to memory or to file.
+        if (!$this->cookiesFilePath) {
+            // Save cookies in memory until curl_close  is not called. Windows use NULL.
+            curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, '\\' === DIRECTORY_SEPARATOR ? null : '/dev/null');
+        } else {
+            curl_setopt($this->curlResource, CURLOPT_COOKIEJAR, $this->cookiesFilePath);
+            curl_setopt($this->curlResource, CURLOPT_COOKIEFILE, $this->cookiesFilePath);
+        }
+
         // Set proxy settings.
         if ($this->proxy) {
             list($proxyType, $proxyIp, $proxyPort, $proxyLogin, $proxyPass) = explode(":", $this->proxy);

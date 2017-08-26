@@ -52,16 +52,18 @@ class OkToolsClient
      *   User phone number.
      * @param string $pass
      *   Password.
+     * @param RequestersTypesEnum $requesterType
+     *   Requester to chose.
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     * @param int $requestPauseSec
-     *   Pause before any request to emulate human behaviour.
      * @param string $userAgent
      *   User agent to be used in requests.
-     *
-     * @throws OkToolsBlockedUserException
-     *   Will be thrown on User blocked/frozen marker and if response is not successfull.
+     * @param string $cookiesDir. No Ended slash.
+     *   Cookies dir path on a server.
+     * @param int $requestPauseSec
+     *   Pause before any request to emulate human behaviour.
+
      * @throws OkToolsNotFoundException
      *   Will be thrown if no user marker found.
      *
@@ -74,28 +76,64 @@ class OkToolsClient
         RequestersTypesEnum $requesterType, 
         $proxy = null, 
         $userAgent = null,
+        $cookiesDir = null,
         $requestPauseSec = 1
     ) {
         // Create requester and define login and pause.
         $factory = new RequestersFactory();
         $this->requestBehaviour = $factory->createRequester($requesterType, $proxy, $userAgent);
 
+        // Set up cookies file.
+        if ($cookiesDir) {
+          $this->requestBehaviour->setCookieFile($cookiesDir . "/" . $login);
+        }
+
         $this->requestPauseSec = $requestPauseSec;
         $this->login = $login;
 
-        // User authorization.
-        $postData = [
-            'fr.login' => $login,
-            'fr.password' => $pass,
-            'fr.posted' => 'set',
-            'fr.proto' => 1
-        ];
+        // Attend login page.
+        $loginFormPage = $this->attendPage(null);
+        print $loginFormPage;
+                
+        // Check if user already logged in.
+        if (!$this->isUserloggedIn($loginFormPage)) {
+            // User authorization.
+            $postData = [
+                'fr.login' => $login,
+                'fr.password' => $pass,
+                'fr.posted' => 'set',
+                'fr.proto' => 1
+            ];
 
-        // Make login attempt.
-        $loggedInPage = $this->sendForm(OkPagesEnum::LOGIN_PATH, $postData);
+            // Make login attempt.
+            $loggedInPage = $this->sendForm(OkPagesEnum::LOGIN_PATH, $postData);
 
-        // Check if user Frozen/Blocked.
-        $loggedIn = str_get_html($loggedInPage);
+            // Check if user Frozen/Blocked.
+            if (!$this->isUserloggedIn($loggedInPage)) {
+              throw new OkToolsNotFoundException("User couldn't login.", $loggedIn->outertext);
+            }
+        }
+
+        // Return page after login.
+        return $this->lastPage;
+    }
+    
+    /**
+     * Check if user is already authorized.
+     *
+     * @param string $mobileFrontPage
+     *   Ok front page to search logged in user markers.
+     *
+     * @throws OkToolsBlockedUserException
+     *   Will be thrown on User blocked/frozen marker and if response is not successfull.
+     * @throws OkToolsNotFoundException
+     *   Will be thrown if no user marker found.
+     * 
+     * @return boolean
+     *   TRUE if user is authorized, FALSE otherway.
+     */
+    protected function isUserloggedIn($mobileFrontPage) {
+        $loggedIn = str_get_html($mobileFrontPage);
         $box = $loggedIn->find("#boxPage", 0);
         if ($box) {
             $status = $box->{"data-logloc"};
@@ -112,10 +150,10 @@ class OkToolsClient
                 // User is authorized.
                 case "userMain":
                     // Return html page.
-                    return $loggedInPage;
+                    return true;
                 // Couldn't login.
                 case "main":
-                    throw new OkToolsNotFoundException("User couldn't login.", $loggedIn->outertext);
+                    return false;
             }
         } else {
             // Some unexpected result.
@@ -460,8 +498,8 @@ class OkToolsClient
      */
     public function gwtLog($logData)
     {
-        // Pause before log 1 - 3 sec.
-        sleep(rand(1, 3));
+        // Pause before log 1 - 4 sec.
+        sleep(rand(1, 4));
         
         // Send log request.
         $data['a'] = json_encode($logData);

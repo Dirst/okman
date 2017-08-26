@@ -34,6 +34,9 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     
     // @var int
     protected $groupId;
+    
+    // @var string
+    protected $invitePopup;
 
     /**
      * Init Account control object.
@@ -60,15 +63,17 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   User phone number.
      * @param string $pass
      *   Password.
+     * @param RequestersTypesEnum $requesterType
+     *   Requester to chose.
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     * @param int $requestPauseSec
-     *   Pause before any request to emulate human behaviour.
-     * @param int $groupId
-     *   Group Id to init the group.
      * @param string $userAgent
      *   User agent to be used in requests.
+     * @param string $cookiesDir. No Ended slash.
+     *   Cookies dir path on a server.
+     * @param int $requestPauseSec
+     *   Pause before any request to emulate human behaviour.
      *
      * @return OkToolsBaseControl
      *   Control object with Client initialized inside.
@@ -80,10 +85,10 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         $groupId,
         $proxy = null,
         $userAgent = null,
+        $cookiesDir = null,
         $requestPauseSec = 1
     ) {
-    
-        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $requestPauseSec);
+        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $cookiesDir, $requestPauseSec);
         return new static($okToolsClient, $groupId);
     }
 
@@ -401,13 +406,13 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     public function canBeInvited($userId)
     {
         // Retrieve popup.
-        $popup = $this->retrieveMemberPopup(
+        $this->invitePopup = $this->retrieveMemberPopup(
             $userId,
             $this->getInviteRequestParameters($userId)
         );
         
         // Convert to dom.
-        $popupDom = str_get_html($popup);
+        $popupDom = str_get_html($this->invitePopup);
         
         // Check if user can be invited according to returned in popup.
         if ($popupDom->plaintext == "Пользователь не принимает приглашения в группы") {
@@ -439,10 +444,15 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     public function inviteUserToGroup($userId, $groupId)
     {
         // Retrieve members popup.
-        $inviteCanvas = $this->retrieveMemberPopup(
-            $userId,
-            $this->getInviteRequestParameters($userId)
-        );
+        if (!$this->invitePopup) {
+            $inviteCanvas = $this->retrieveMemberPopup(
+                $userId,
+                $this->getInviteRequestParameters($userId)
+            );
+        } else {
+            $inviteCanvas = $this->invitePopup;
+        }
+
         $inviteCanvasDom = str_get_html($inviteCanvas)->find(".portlet_b", 0);
 
         // Throw if no invite canvas is found.
@@ -468,6 +478,9 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         if (!$inviteResultDom->find(".tip_cnt", 0)) {
             throw new OkToolsInviteFailedException("Couldn't find appropriate response for user invite", $inviteResult);
         }
+        
+        // Clear invite popup.
+        $this->invitePopup = null;
     }
 //
 //    public function isInvited($userId)
@@ -624,7 +637,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             ],
             'feed' => [
                 'shortcutMenu' => [
-                    'second' => rand(1, 5),
+                    'second' => rand(3, 11),
                 ],
             ],
         ];

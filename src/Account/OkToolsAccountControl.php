@@ -285,14 +285,18 @@ class OkToolsAccountControl extends OkToolsBaseControl
      *   User phone number.
      * @param string $pass
      *   Password.
+     * @param RequestersTypesEnum $requesterType
+     *   Requester to chose.
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     * @param int $requestPauseSec
-     *   Pause before any request to emulate human behaviour.
      * @param string $userAgent
      *   User agent to be used in requests.
-     *
+     * @param string $cookiesDir. No Ended slash.
+     *   Cookies dir path on a server.
+     * @param int $requestPauseSec
+     *   Pause before any request to emulate human behaviour.
+     * 
      * @return OkToolsBaseControl
      *   Control object with Client initialized inside.
      */
@@ -302,9 +306,10 @@ class OkToolsAccountControl extends OkToolsBaseControl
         RequestersTypesEnum $requesterType,
         $proxy = null,
         $userAgent = null,
+        $cookiesDir = null,
         $requestPauseSec = 1
     ) {
-        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $requestPauseSec);
+        $okToolsClient = new OkToolsClient($login, $pass, $requesterType, $proxy, $userAgent, $cookiesDir, $requestPauseSec);
         return new static($okToolsClient);
     }
 }
