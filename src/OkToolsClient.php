@@ -93,7 +93,6 @@ class OkToolsClient
 
         // Attend login page.
         $loginFormPage = $this->attendPage(null);
-        print $loginFormPage;
                 
         // Check if user already logged in.
         if (!$this->isUserloggedIn($loginFormPage)) {
