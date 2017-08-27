@@ -110,7 +110,7 @@ class OkToolsClient
 
             // Make login attempt.
             $loggedInPage = $this->sendForm(ltrim($dom->find("form", 0)->action, '/'), $postData);
-                print $loggedInPage; die();
+
             // Check if user Frozen/Blocked.
             if (!$this->isUserloggedIn($loggedInPage)) {
               throw new OkToolsNotFoundException("User couldn't login.", $loggedInPage);
