@@ -139,12 +139,12 @@ class OkToolsClient
             switch ($status) {
                 // User Blocked.
                 case OkBlockedStatusEnum::USER_BLOCKED:
-                    throw new OkToolsBlockedUserException("User has been blocked forever.", $login, $loggedIn->outertext);
+                    throw new OkToolsBlockedUserException("User has been blocked forever.", $this->login, $loggedIn->outertext);
                   break;
                 // User Frozen.
                 case OkBlockedStatusEnum::USER_VERIFICATION:
                 case OkBlockedStatusEnum::USER_FROZEN:
-                    throw new OkToolsBlockedUserException("User has been frozen status = {$status}", $login, $loggedIn->outertext);
+                    throw new OkToolsBlockedUserException("User has been frozen status = {$status}", $this->login, $loggedIn->outertext);
                   break;
                 // User is authorized.
                 case "userMain":
