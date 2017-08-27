@@ -109,7 +109,7 @@ class OkToolsClient
 
             // Check if user Frozen/Blocked.
             if (!$this->isUserloggedIn($loggedInPage)) {
-              throw new OkToolsNotFoundException("User couldn't login.", $loggedInPage->outertext);
+              throw new OkToolsNotFoundException("User couldn't login.", $loggedInPage);
             }
         }
 
