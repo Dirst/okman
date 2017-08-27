@@ -93,9 +93,10 @@ class OkToolsClient
 
         // Attend login page.
         $loginFormPage = $this->attendPage(null);
-                
+
         // Check if user already logged in.
         if (!$this->isUserloggedIn($loginFormPage)) {
+
             // User authorization.
             $postData = [
                 'fr.login' => $login,
@@ -104,9 +105,12 @@ class OkToolsClient
                 'fr.proto' => 1
             ];
 
-            // Make login attempt.
-            $loggedInPage = $this->sendForm(OkPagesEnum::LOGIN_PATH, $postData);
+            // Get login html.
+            $dom = str_get_html($loginFormPage);
 
+            // Make login attempt.
+            $loggedInPage = $this->sendForm(ltrim($dom->find("form", 0)->action, '/'), $postData);
+                print $loggedInPage; die();
             // Check if user Frozen/Blocked.
             if (!$this->isUserloggedIn($loggedInPage)) {
               throw new OkToolsNotFoundException("User couldn't login.", $loggedInPage);
