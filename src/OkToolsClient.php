@@ -92,25 +92,32 @@ class OkToolsClient
         $this->login = $login;
 
         // Attend login page.
-        $loginFormPage = $this->attendPage(null);
+        $loginFormPage = $this->attendPage(null, true, [], true);
 
         // Check if user already logged in.
         if (!$this->isUserloggedIn($loginFormPage)) {
-
-            // User authorization.
-            $postData = [
-                'fr.login' => $login,
-                'fr.password' => $pass,
-                'fr.posted' => 'set',
-                'fr.proto' => 1
-            ];
-
             // Get login html.
             $dom = str_get_html($loginFormPage);
 
-            // Make login attempt.
-            $loggedInPage = $this->sendForm(ltrim($dom->find("form", 0)->action, '/'), $postData);
+            // Collect post parameters.
+            $form = $dom->find("form", 0);
+            $postData = [];
+            foreach ($form->find("input") as $input) {
+                if ($input->value) {
+                    $postData[$input->name] = $input->value;
+                }
+            }
+            
+            // After setup
+            $postData['st.email'] = $login;
+            $postData['st.password'] = $pass;
+            $postData['st.st.screenSize'] = rand(1600, 1920) . " x " . rand(640, 1080);
+            $postData['st.st.browserSize'] = rand(430, 520);
+            $postData['st.st.flashVer'] = "0.0.0";
 
+            // Make login attempt.
+            $loggedInPage = $this->requestBehaviour->requestPost($form->action, $postData);
+            $this->lastPage = $loggedInPage;
             // Check if user Frozen/Blocked.
             if (!$this->isUserloggedIn($loggedInPage)) {
               throw new OkToolsNotFoundException("User couldn't login.", $loggedInPage);
@@ -137,27 +144,14 @@ class OkToolsClient
      */
     protected function isUserloggedIn($mobileFrontPage) {
         $loggedIn = str_get_html($mobileFrontPage);
-        $box = $loggedIn->find("#boxPage", 0);
-        if ($box) {
-            $status = $box->{"data-logloc"};
-            switch ($status) {
-                // User Blocked.
-                case OkBlockedStatusEnum::USER_BLOCKED:
-                    throw new OkToolsBlockedUserException("User has been blocked forever.", $this->login, $loggedIn->outertext);
-                  break;
-                // User Frozen.
-                case OkBlockedStatusEnum::USER_VERIFICATION:
-                case OkBlockedStatusEnum::USER_FROZEN:
-                    throw new OkToolsBlockedUserException("User has been frozen status = {$status}", $this->login, $loggedIn->outertext);
-                  break;
-                // User is authorized.
-                case "userMain":
-                    // Return html page.
-                    return true;
-                // Couldn't login.
-                case "main":
-                    return false;
-            }
+        if ($loggedIn->find("#hook_Block_LeftColumnTopCardUser", 0)) {
+            return true;
+        } elseif ($loggedIn->find("#hook_Block_AnonymMain", 0)) {
+            return false;
+        } elseif ($loggedIn->find("#hook_Block_AnonymAccountRecoveryFlow", 0)) {
+            throw new OkToolsBlockedUserException("User has been frozen", $this->login, $loggedIn->outertext);
+        } elseif($loggedIn->find("#hook_Block_AnonymBlockedByAdmin", 0)) {
+            throw new OkToolsBlockedUserException("User has been blocked forever.", $this->login, $loggedIn->outertext);
         } else {
             // Some unexpected result.
             throw new OkToolsNotFoundException("Can't find user logged in marker.", $loggedIn->outertext);
@@ -257,14 +251,16 @@ class OkToolsClient
      *   Use desktop base url or mobile flag.
      * @param array $headers
      *   Headers to set before request.
-     *
+     * @param boolean $anonRequest
+     *   Anonimous request flag.
+     * 
      * @throws OkToolsCaptchaAppearsException
      *   Thrown when captcha appeared and solved.
      *
      * @return string
      *   Html result.
      */
-    public function attendPage($pageUrl, $desktop = false, $headers = [])
+    public function attendPage($pageUrl, $desktop = false, $headers = [], $anonRequest = false)
     {
         // Define url.
         $baseUrl = $desktop ? self::D_URL : self::M_URL;
@@ -291,13 +287,42 @@ class OkToolsClient
         $this->lastPage = $page;
         
         // Desktop mode routines.
-        if ($desktop) {
+        if ($desktop && !$anonRequest) {
             $this->desktopAttendRoutines($page);
         }
 
         return $page;
     }
     
+        /**
+     * Get ajax requred url parameters.
+     *
+     * @param boolean $noPsid
+     *   True if no p_sid should be returned.
+     *
+     * @return string
+     *   Url paramters as string to append to url.
+     */
+    public function getAjaxRequestUrlParams($noPsid = false)
+    {
+        // Get parameters for request.
+        $gwtHash = $this->getGwtDesktopHash();
+
+        // Set up URL & Send request.
+        $params =  [
+            "st.vpl.mini" => "false",
+            "gwt.requested" => $gwtHash,
+        ];
+        
+        // If paramters requested without p_sid.
+        if (!$noPsid) {
+            $periodicManagerData = $this->getPeriodicManagerData();
+            $params["p_sId"] = $periodicManagerData['p_sId'];
+        }
+        
+        return http_build_query($params);
+    }
+
     /**
      * Perform desktop GET request operations.
      * 

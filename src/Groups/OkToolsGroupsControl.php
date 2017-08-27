@@ -162,7 +162,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         }
         
         // Get ajax request prameters.
-        $url = $membersLink->href . "&" . $this->getAjaxRequestUrlParams();
+        $url = $membersLink->href . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         
         // Add previous page parameter.
         $urlPrevious = [
@@ -196,7 +196,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         
         // Construct url.
         $url = self::GROUP_BASE_URL . "/" . $this->groupId . "/" . self::GROUP_MEMBERS_BASE_URL;
-        $url .= "?" . http_build_query($params) . "&" . $this->getAjaxRequestUrlParams($noPsid = true);
+        $url .= "?" . http_build_query($params) . "&" . $this->OkToolsClient->getAjaxRequestUrlParams($noPsid = true);
         
         return $url;
     }
@@ -247,7 +247,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         }
         
         // Set up url and send request.
-        $jsUrl = $joinLink->href . "&" . $this->getAjaxRequestUrlParams();
+        $jsUrl = $joinLink->href . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         $this->OkToolsClient->sendForm($jsUrl, [], true);
         
         // Reinit group page.
@@ -355,41 +355,14 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         }
 
         // Set up url and send request.
-        $jsUrl = $exitLink->href . "&" . $this->getAjaxRequestUrlParams();
+        $jsUrl = $exitLink->href . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         $this->OkToolsClient->sendForm($jsUrl, [], true);
   
         // Reinit group page.
         $this->groupFrontPage = $this->initGroupPage();
     }
 
-    /**
-     * Get ajax requred url parameters.
-     *
-     * @param boolean $noPsid
-     *   True if no p_sid should be returned.
-     *
-     * @return string
-     *   Url paramters as string to append to url.
-     */
-    protected function getAjaxRequestUrlParams($noPsid = false)
-    {
-        // Get parameters for request.
-        $gwtHash = $this->OkToolsClient->getGwtDesktopHash();
 
-        // Set up URL & Send request.
-        $params =  [
-            "st.vpl.mini" => "false",
-            "gwt.requested" => $gwtHash,
-        ];
-        
-        // If paramters requested without p_sid.
-        if (!$noPsid) {
-            $periodicManagerData = $this->OkToolsClient->getPeriodicManagerData();
-            $params["p_sId"] = $periodicManagerData['p_sId'];
-        }
-        
-        return http_build_query($params);
-    }
 
     /**
      * Check if it is possible to ivite user.
@@ -468,7 +441,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
 
         // Construct url.
         $url = ltrim($groupItem->href, "/");
-        $url .=  "&" . $this->getDeviceSizeParams() . "&" . $this->getAjaxRequestUrlParams();
+        $url .=  "&" . $this->getDeviceSizeParams() . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         
         // Send request.
         $inviteResult = $this->OkToolsClient->sendForm($url, [], true);
@@ -522,7 +495,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         ];
 
         // Construct url and send request.
-        $url = ltrim($form->action, "/") . "&" . $this->getAjaxRequestUrlParams();
+        $url = ltrim($form->action, "/") . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         $this->OkToolsClient->sendForm($url, $postData, true);
     }
 
@@ -542,7 +515,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     {
         // Construct url.
         $url = self::GROUP_BASE_URL . "/" . $this->groupId . "/" . self::GROUP_MEMBERS_BASE_URL;
-        $url .= "?" . http_build_query($params) . "&" . $this->getAjaxRequestUrlParams();
+        $url .= "?" . http_build_query($params) . "&" . $this->OkToolsClient->getAjaxRequestUrlParams();
         $url .= "&" . $this->getDeviceSizeParams();
 
         // Retrieve popup layer.
