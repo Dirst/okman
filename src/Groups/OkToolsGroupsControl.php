@@ -430,7 +430,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
 
         // Throw if no invite canvas is found.
         if (!$inviteCanvasDom) {
-            throw new OkToolsDomItemNotFoundException("Couldn't find invite popup canvas - $this->groupId", "");
+            throw new OkToolsDomItemNotFoundException("Couldn't find invite popup canvas - $this->groupId", $inviteCanvas);
         }
 
         // Check if user is already invited.
