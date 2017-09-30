@@ -8,7 +8,7 @@ namespace Dirst\OkTools\Exceptions;
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsBlockedException extends OkToolsException
+class OkToolsLoginFailedException extends OkToolsException
 {
     /**
      * Exception constructor.

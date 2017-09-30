@@ -8,6 +8,7 @@
     "require": {
         "php": ">=5.4.0",
         "aszone/simple_html_dom": "*",
-        "myclabs/php-enum": "*"
+        "myclabs/php-enum": "*",
+        "webjeyros/sms-activation-api": "dev-master"
     }
 }

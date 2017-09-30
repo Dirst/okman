@@ -22,8 +22,8 @@ class RequestCurl implements RequestInterface
     private $responseHeaders;
 
     // @var string If no UA passed to constructor.
-    const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        . "(KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36";
+    const USER_AGENT = "OKAndroid/15.2.1 b319 (Android 4.1.4; ru_RU; Xiaomi "
+        . "HM NOTE 1S Build/MiuiPro; xhdpi 320dpi 640x1024)";
     
     // @var string
     protected $userAgent;
@@ -84,7 +84,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function requestPost($url, array $postData, $multipart = false)
+    public function requestPost($url,  $postData, $multipart = false)
     {
         $this->setRequest($url);
         if ($postData) {

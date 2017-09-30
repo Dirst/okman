@@ -18,17 +18,15 @@ class OkToolsException extends \Exception
      *
      * @param string $message
      *   Message about error.
-     * @param string $html
-     *   Html response string.
-     * @param int $code
-     *   Code of Exception.
+     * @param string $responseString
+     *   Response string.
      * @param Throwable $previous.
      *   Previous exception.
      */
-    public function __construct($message, $html = null, $code = 0, Throwable $previous = null)
+    public function __construct($message, $responseString = null, Throwable $previous = null)
     {
-        $this->values['html'] = $html;
-        parent::__construct($message, $code, $previous);
+        $this->values['responseString'] = $responseString;
+        parent::__construct($message, 0, $previous);
     }
 
     /**
