@@ -23,7 +23,7 @@ class RequestersFactory
      *   Possible types are socks5, http.
      * @param string $userAgent
      *   User agent to be used in requests.
-     * 
+     *
      * @return RequestInterface
      *   New Requester object.
      */

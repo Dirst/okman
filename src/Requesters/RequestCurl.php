@@ -38,7 +38,7 @@ class RequestCurl implements RequestInterface
      * @param string $proxy
      *   Proxy settings to use with request. type:ip:port:login:pass.
      *   Possible types are socks5, http.
-     * 
+     *
      * @param string $userAgent
      *   User agent to be used in requests.
      */
@@ -56,7 +56,8 @@ class RequestCurl implements RequestInterface
      * @param string $cookieFilePath
      *   Sets cookie file path.
      */
-    public function setCookieFile($cookieFilePath) {
+    public function setCookieFile($cookieFilePath)
+    {
         $this->cookiesFilePath = $cookieFilePath;
     }
 
@@ -84,7 +85,7 @@ class RequestCurl implements RequestInterface
     /**
      * {@inheritdoc}
      */
-    public function requestPost($url,  $postData, $multipart = false)
+    public function requestPost($url, $postData, $multipart = false)
     {
         $this->setRequest($url);
         if ($postData) {
@@ -136,7 +137,7 @@ class RequestCurl implements RequestInterface
         curl_setopt($this->curlResource, CURLOPT_POST, true);
         curl_setopt($this->curlResource, CURLOPT_USERAGENT, $this->userAgent);
         curl_setopt($this->curlResource, CURLINFO_HEADER_OUT, 1);
-//        curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2); Sometimes couldn't make a request. Unstable.
+//curl_setopt($this->curlResource, CURLOPT_HTTP_VERSION, CURL_VERSION_HTTP2); Smtimes couldn't make a request. Unstable.
         curl_setopt($this->curlResource, CURLOPT_HEADERFUNCTION, [$this, 'readHeaders']);
 
         // Set cookies to memory or to file.

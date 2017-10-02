@@ -24,8 +24,14 @@ class OkToolsBlockedUserException extends OkToolsBlockedException
      * @param Throwable $previous.
      *   Previous exception.
      */
-    public function __construct($message, $itemId, $responseString = null, $verificationUrl = null, Throwable $previous = null)
-    {
+    public function __construct(
+        $message,
+        $itemId,
+        $responseString = null,
+        $verificationUrl = null,
+        Throwable $previous = null
+    ) {
+    
         parent::__construct($message, $itemId, $responseString, $previous);
         $this->values['verificationUrl'] = $verificationUrl;
     }

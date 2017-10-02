@@ -3,11 +3,11 @@
 namespace Dirst\OkTools\Exceptions;
 
 /**
- * Base Exception class for OkTools.
+ * OkTools group role assign exception.
  *
  * @author Dirst <dirst.guy@gmail.com>
  * @version 1.0
  */
-class OkToolsInviteFailedException extends OkToolsException
+class OkToolsGroupRoleAssignException extends OkToolsException
 {
 }

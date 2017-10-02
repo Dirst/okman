@@ -12,5 +12,5 @@ use MyCLabs\Enum\Enum;
  */
 class OkToolsGroupRoleEnum extends Enum
 {
-    const MODERATOR = 0;
+    const MODERATOR = "MODERATOR";
 }

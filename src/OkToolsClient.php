@@ -7,6 +7,8 @@ use Dirst\OkTools\Exceptions\OkToolsLoginFailedException;
 use Dirst\OkTools\Requesters\RequestersFactory;
 use Dirst\OkTools\Requesters\RequestersTypesEnum;
 use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
+use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
+
 /**
  * Base class used with other Ok tools.
  *
@@ -25,7 +27,7 @@ class OkToolsClient
     protected $apiBaseEndpoint = "https://api.ok.ru/api";
 
     // @var string after this time account session key should be refreshed.
-    protected $updateLoginTimeIntervalSeconds = 60 * 20;
+    private $updateLoginTimeIntervalSeconds = 60 * 20;
     
     // @var array install ids of mobile app.
     private $deviceIdArray;
@@ -37,8 +39,17 @@ class OkToolsClient
     private $login;
 
     // @var array login data.
-    private $loginResponseData;
+    protected $loginResponseData;
+    
+    // @var string Application key.
+    protected $appKey;
+    
+    // @var string useragent android device.
+    protected $deviceUserAgent;
 
+    // @var string useragent android browser.
+    protected $browserUserAgent;
+    
     /**
      * Construct OkToolsClient. Login to OK.RU. Define parameters.
      *
@@ -79,14 +90,18 @@ class OkToolsClient
         $deviceId,
         $androidId,
         $okAppKey,
-        $proxy = null, 
-        $userAgent = null,
+        $proxy = null,
+        $userAgentDevice = null,
+        $userAgentBrowser = null,
         $loginResponseDataDir = null,
         $requestPauseSec = 1
     ) {
+        $this->browserUserAgent = $userAgentBrowser;
+        $this->deviceUserAgent = $userAgentDevice;
+        
         // Create requester and define login and pause.
         $factory = new RequestersFactory();
-        $this->requestBehaviour = $factory->createRequester($requesterType, $proxy, $userAgent);
+        $this->requestBehaviour = $factory->createRequester($requesterType, $proxy, $userAgentDevice);
         
         // Android install ids.
         $this->deviceIdArray = [
@@ -101,20 +116,21 @@ class OkToolsClient
         // Trying to login.
         $this->login = $login;
         
+        // Set up application key.
+        $this->appKey = $okAppKey;
+        
         // Login again or use saved data from previous login to retrieve new.
         $credsFilePath = $loginResponseDataDir . "/$login";
-        if (!file_exists($credsFilePath)) {        
+        if (!file_exists($credsFilePath)) {
             $data = $this->login($login, $pass, $okAppKey);
-        } 
-        else {
+        } else {
             $data = $this->updateLogin($credsFilePath, $okAppKey);
         }
 
         // Check for error.
         if (isset($data['error_code'])) {
-            switch($data['error_code']) {
+            switch ($data['error_code']) {
                 case RequestersHttpCodesEnum::HTTP_FORBIDDEN:
-                    
                     throw new OkToolsBlockedUserException(
                         "Couldn't login with message {$data['error_msg']}",
                         $login,
@@ -132,7 +148,11 @@ class OkToolsClient
             $this->loginResponseData = $data;
         } else {
             // If no success throw Couldn't login exception.
-            throw new OkToolsLoginFailedException("Couldn't login beause of unknown reason.", $login, var_export($data, true));
+            throw new OkToolsLoginFailedException(
+                "Couldn't login beause of unknown reason.",
+                $login,
+                var_export($data, true)
+            );
         }
     }
 
@@ -147,12 +167,14 @@ class OkToolsClient
      * @return array
      *   Json response as array.
      */
-    protected function updateLogin($credsFilePath, $okAppKey) {
+    protected function updateLogin($credsFilePath, $okAppKey)
+    {
         $data = unserialize(file_get_contents($credsFilePath));
 
         // Data time is not set.
-        if (!isset($data['time'])) 
-          $data['time'] = 0;
+        if (!isset($data['time'])) {
+            $data['time'] = 0;
+        }
 
         // Do only in amount of time new session key get.
         if ($data['time'] + $this->updateLoginTimeIntervalSeconds <= time()) {
@@ -165,16 +187,11 @@ class OkToolsClient
               "verification_supported_v" => "1"
             ];
 
-            $result = $this->requestBehaviour->requestGet("{$this->apiBaseEndpoint}/auth/loginByToken", $form);
-            if ($decompressed = @gzdecode($result)) {
-              $result = $decompressed;
-            }
-   
-            $dataDecoded = json_decode($result, true);
-            $data['auth_login_response']['session_key'] = $dataDecoded['session_key'];         
+            $dataDecoded = $this->makeRequest("{$this->apiBaseEndpoint}/auth/loginByToken", $form, "get");
+            $data['auth_login_response']['session_key'] = $dataDecoded['session_key'];
         }
-        
-        return $data;   
+
+        return $data;
     }
 
     /**
@@ -190,7 +207,8 @@ class OkToolsClient
      * @return array
      *   Json response on login ias array.
      */
-    protected function login($login, $pass, $okAppKey) {
+    protected function login($login, $pass, $okAppKey)
+    {
         // Set up methods parameter.
         $methods[] = [
           "method" => "auth.login",
@@ -219,14 +237,6 @@ class OkToolsClient
           "method" => "libverify.libverifyPhoneActual",
         ];
         
-        // Set up headers
-        $headers = [
-          "Content-Type" => "application/x-www-form-urlencoded",
-          "Accept" => 'application/json',
-          "Connection" => "keep-alive",
-          "Accept-Encoding" => "gzip"
-        ];
-
         // Set up form parameters.
         $form = [
           "application_key" => $okAppKey,
@@ -236,16 +246,9 @@ class OkToolsClient
         ];
 
         // Set up headers and send request.
-        $this->requestBehaviour->setHeaders($headers);
-        $result = $this->requestBehaviour->requestPost("{$this->apiBaseEndpoint}/batch/execute", $form);
-        
-        // Trying to decode response string anyway.
-        if ($decodedResult = @gzdecode($result)) {
-            $result = $decodedResult;
-        }
-        
-        $data = json_decode($result, true);
-        return $data;
+        $result = $this->makeRequest("{$this->apiBaseEndpoint}/batch/execute", $form, "post");
+
+        return $result;
     }
     
     /**
@@ -268,5 +271,138 @@ class OkToolsClient
     public function getAccountLogin()
     {
         return $this->login;
+    }
+    
+    /**
+     * Returns app key.
+     *
+     * @return string
+     *   Application key.
+     */
+    public function getAppKey()
+    {
+        return $this->appKey;
+    }
+
+    /**
+     * Login response data return.
+     *
+     * @return array
+     *   Login response data.
+     */
+    public function getLoginData()
+    {
+        return $this->loginResponseData;
+    }
+
+    /**
+     * Get Api endpoint.
+     *
+     * @return string
+     *   Api endpoint url.
+     */
+    public function getApiEndpoint()
+    {
+        return $this->apiBaseEndpoint;
+    }
+
+    /**
+     * Get app seed.
+     *
+     * @return string
+     *   App seed.
+     */
+    public function getAppSeed()
+    {
+        return $this->seed;
+    }
+
+    /**
+     * Convert Id to/from application id.
+     *
+     * @param string $id
+     *   Id to convert.
+     *
+     * @return string
+     *   Converted ID.
+     */
+    public function convertId($id)
+    {
+        $a = gmp_init($this->seed);
+        $b = gmp_init($id);
+        $id = (string)(gmp_intval($a) ^ gmp_intval($b));
+
+        return $id;
+    }
+
+    
+    /**
+     * Get account API ID.
+     *
+     * @return string
+     *   User id in api format.
+     */
+    public function getAccountApiId()
+    {
+        return $this->loginResponseData['auth_login_response']['uid'];
+    }
+    
+    /**
+     * Make a request to OK.
+     *
+     * @param string $url
+     *   Url to make a request to.
+     * @param mixed $formData
+     *   Data to send.
+     * @param string $type
+     *   Get or Post request.
+     * @param string $browser
+     *   Use request as browser or as android device.
+     *
+     * @throws OkToolsCaptchaAppearsException
+     *   Thrown if there is aptcha on a page.
+     *
+     * @return string|array
+     *   Web page or decoded json string.
+     */
+    public function makeRequest($url, $formData = null, $type = "get", $browser = false)
+    {
+      // Set base headers
+        $headers = [
+        "Accept-Encoding" => "gzip",
+        "Connection" => "keep-alive",
+        ];
+        $headers["Accept"] = $browser ? "text/html,application/xhtml+xml,"
+            . "application/xml;q=0.9,image/webp,*/*;q=0.8" : 'application/json';
+        $headers['User-Agent'] = $browser ? $this->browserUserAgent : $this->deviceUserAgent;
+
+      // Additional header.
+        if ($browser) {
+            $headers["X-Requested-With"] = "ru.ok.android";
+        }
+      
+      // Send request.
+        if ($type == "get") {
+            $result = $this->requestBehaviour->requestGet($url, $formData);
+        } else {
+            $result = $this->requestBehaviour->requestPost($url, $formData);
+        }
+
+      // Decompress
+        if ($decompressed = @gzdecode($result)) {
+            $result = $decompressed;
+        }
+      
+      // Check if captcha appears. Possible only in browser mode.
+        if ($browser) {
+            $mobilePage = str_get_html($result);
+
+            // Check if captcha shows up.
+            if ($mobilePage->find("#captcha", 0)) {
+                throw new OkToolsCaptchaAppearsException("Captcha appears", $this->login, $result);
+            }
+        }
+
+        return $browser ? $result : json_decode($result, true);
     }
 }
