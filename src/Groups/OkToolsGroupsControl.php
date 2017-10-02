@@ -11,6 +11,9 @@ use Dirst\OkTools\Exceptions\Invite\OkToolsInviteAcceptorNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
 use Dirst\OkTools\Exceptions\OkToolsGroupRoleAssignException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupJoinException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupLoadException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupMembersLoadException;
 
 /**
  * Groups control for account.
@@ -27,12 +30,15 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     private $groupId;
 
     /**
-     * Init Account control object.
+     * Init Group control object.
      *
      * @param OkToolsClient $okTools
      *   Ok Tools Base object.
      * @param int $groupId
      *   Group Id to init the group. Website format.
+     *
+     * @throws OkToolsGroupLoadException
+     *   When group load has been failed.
      */
     public function __construct(OkToolsClient $okTools, $groupId)
     {
@@ -59,7 +65,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         if (isset($groupInfo['group_getInfo_response']) && isset($groupInfo['group_getInfo_response'][0])) {
             $this->groupInfo = $groupInfo['group_getInfo_response'][0];
         } else {
-          // Throw exception.
+            throw new OkToolsGroupLoadException("Couldn't load a group.", var_export($groupInfo, true));
         }
     }
 
@@ -71,12 +77,13 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      * @param string $direction
      *   Direction to get users.
      *
-     * @throws
+     * @throws OkToolsGroupMembersLoadException
+     *   On members load exception.
      *
      * @return array
      *   Array of users
      */
-    public function getMembers($pageAnchor = null, $direction = "FORWARD", $count = 300)
+    public function getMembers($pageAnchor = null, $direction = "FORWARD", $count = 30)
     {
         $form = [
           "application_key" => $this->OkToolsClient->getAppKey(),
@@ -94,7 +101,10 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         
         // Check if members have been retrieved.
         if (!isset($members['members'])) {
-            // throw new exception.
+            throw new OkToolsGroupMembersLoadException(
+                "Couldn't load members of the group.",
+                var_export($this->groupInfo + $members, true)
+            );
         }
         
         return $members;
@@ -103,8 +113,8 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     /**
      * Join the group.
      *
-     * @return boolean
-     *   Joined or not.
+     * @throws OkToolsGroupJoinException
+     *   If couldn't join the group.
      */
     public function joinTheGroup()
     {
@@ -123,15 +133,16 @@ class OkToolsGroupsControl extends OkToolsBaseControl
                 "get"
             );
     
-          // Check on success.
-            if (!$groupJoined['success']) {
-                // throw exception
+            // Check on success.
+            if (!@$groupJoined['success']) {
+                throw new OkToolsGroupJoinException(
+                    "Couldn't join the group. ",
+                    var_export($this->groupInfo + $groupJoined, true)
+                );
             } else {
                 $this->groupInfo['feed_subscription'] = true;
             }
         }
-
-        return true;
     }
 
     /**

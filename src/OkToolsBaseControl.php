@@ -13,7 +13,7 @@ use Dirst\OkTools\Requesters\RequestersTypesEnum;
  */
 abstract class OkToolsBaseControl
 {
-    // @var OkToolsClient object.
+    // @var \Dirst\OkTools\OkToolsClient object.
     protected $OkToolsClient;
 
     /**
