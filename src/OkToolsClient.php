@@ -25,6 +25,9 @@ class OkToolsClient
     
     // @var string base api endpoint.
     protected $apiBaseEndpoint = "https://api.ok.ru/api";
+    
+    // @var string moobile web api endpoint.
+    protected $mobileVersionUrl = "https://m.ok.ru";
 
     // @var string after this time account session key should be refreshed.
     private $updateLoginTimeIntervalSeconds = 60 * 20;
@@ -307,6 +310,17 @@ class OkToolsClient
     }
 
     /**
+     * Get Mobile Web Api endpoint.
+     *
+     * @return string
+     *   Api endpoint url.
+     */
+    public function getMobileVersionUrl()
+    {
+        return $this->mobileVersionUrl;
+    }
+    
+    /**
      * Get app seed.
      *
      * @return string
@@ -369,8 +383,8 @@ class OkToolsClient
     {
       // Set base headers
         $headers = [
-        "Accept-Encoding" => "gzip",
-        "Connection" => "keep-alive",
+          "Accept-Encoding" => "gzip",
+          "Connection" => "keep-alive",
         ];
         $headers["Accept"] = $browser ? "text/html,application/xhtml+xml,"
             . "application/xml;q=0.9,image/webp,*/*;q=0.8" : 'application/json';
@@ -381,7 +395,9 @@ class OkToolsClient
             $headers["X-Requested-With"] = "ru.ok.android";
         }
       
-      // Send request.
+        $this->requestBehaviour->setHeaders($headers);
+
+        // Send request.
         if ($type == "get") {
             $result = $this->requestBehaviour->requestGet($url, $formData);
         } else {

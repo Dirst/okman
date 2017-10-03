@@ -75,7 +75,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
     public function likeUserPhoto($photoArray)
     {
       // Check if like is possible
-        if ($photoArray['like_summary']['like_possible']) {
+        if (!$photoArray['like_summary']['like_possible']) {
             throw new OkToolsLikesNotPermittedException(
                 "Not possible to like this photo",
                 var_export($photoArray, true)
@@ -88,12 +88,12 @@ class OkToolsAccountControl extends OkToolsBaseControl
         }
       
         $form = [
-        "application_key" => $this->OkToolsClient->getAppKey(),
-        "like_id" => $photoArray['like_summary']['like_id'],
-        "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "like_id" => $photoArray['like_summary']['like_id'],
+          "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
         ];
         $result = $this->OkToolsClient->makeRequest(
-            $this->OkToolsClient->getApiEndpoint() . "/api/like/like",
+            $this->OkToolsClient->getApiEndpoint() . "/like/like",
             $form
         );
 

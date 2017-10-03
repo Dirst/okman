@@ -38,6 +38,6 @@ class OkToolsResponseException extends OkToolsException
         $this->values['responseCode'] = $responseCode;
         $this->values['responseHeaders'] = $responseHeaders;
 
-        parent::__construct($message, $html, $code, $previous);
+        parent::__construct($message, $html, $previous);
     }
 }

@@ -300,7 +300,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
 
         // Get mobile page to invite user.
         $result = $this->OkToolsClient->makeRequest(
-            $this->OkToolsClient->getApiEndpoint() . "/user_invite_to_group",
+            $this->OkToolsClient->getMobileVersionUrl() . "/api/user_invite_to_group",
             $form,
             "get",
             true
@@ -329,7 +329,8 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         
         // Confirm invite page
         $confirmInvitePage = $this->OkToolsClient->makeRequest(
-            $this->OkToolsClient->getApiEndpoint() . $groups->find("a", 0)->href,
+            $this->OkToolsClient->getMobileVersionUrl() . $groups->find("a", 0)->href,
+            [],
             "get",
             true
         );
@@ -345,7 +346,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
 
         // Send invite request.
         $result = $this->OkToolsClient->makeRequest(
-            $this->OkToolsClient->getApiEndpoint() . $confirmInvitePage->find("form", 0)->action,
+            $this->OkToolsClient->getMobileVersionUrl() . $confirmInvitePage->find("form", 0)->action,
             ["fr.posted" => "set", "button_send" => "Отправить"],
             "post",
             true
@@ -376,10 +377,11 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     public function assignGroupRole(OkToolsGroupRoleEnum $role, $userId)
     {
         $form = [
-        "application_key" => $this->OkToolsClient->getAppKey(),
-        "gid" => $this->groupId,
-        "role" => $role->getValue(),
-        "uid" => $userId
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "gid" => $this->groupId,
+          "role" => $role->getValue(),
+          'session_key' => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+          "uid" => $userId
         ];
 
       // Send request.
