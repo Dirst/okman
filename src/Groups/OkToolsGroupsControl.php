@@ -93,12 +93,18 @@ class OkToolsGroupsControl extends OkToolsBaseControl
           "gid" => $this->groupId,
           "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
         ];
+        
+        // Page anchor.
+        if ($pageAnchor) {
+            $form['anchor'] = $pageAnchor;
+        }
+
         $members = $this->OkToolsClient->makeRequest(
             $this->OkToolsClient->getApiEndpoint() . "/group/getMembersV2",
             $form,
             "post"
         );
-        
+
         // Check if members have been retrieved.
         if (!isset($members['members'])) {
             throw new OkToolsGroupMembersLoadException(
