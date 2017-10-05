@@ -2,6 +2,8 @@
 
 namespace Dirst\OkTools\Exceptions\Group;
 
+use Dirst\OkTools\Exceptions\OkToolsException;
+
 /**
  * Base Exception class for OkTools groups control.
  *
