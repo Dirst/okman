@@ -73,18 +73,21 @@ class OkToolsUnfreeze
         $request = $this->requester->requestGet($verificationUrl);
         $domHumanCheck = str_get_html($request);
       
-        // Get link to chose another phone.
-        if (!($choseAnotherPhone = $domHumanCheck->find('a.ai', 0))) {
-            throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
-        }
-  
-        // Get page with form for new phone.
-        $request = $this->requester->requestGet($this->okUrl . $choseAnotherPhone->href);
-        $domHumanCheck = str_get_html($request);
+        // Check if phone form already exists.
         if (!($form = $domHumanCheck->find("form", 0))) {
-            throw new OkToolsDomItemNotFoundException("Couldn't get form to insert new phone.", $request);
+            // Get link to chose another phone.
+            if (!($choseAnotherPhone = $domHumanCheck->find('a.ai', 0))) {
+                throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
+            }
+
+            // Get page with form for new phone.
+            $request = $this->requester->requestGet($this->okUrl . $choseAnotherPhone->href);
+            $domHumanCheck = str_get_html($request);
+            if (!($form = $domHumanCheck->find("form", 0))) {
+                throw new OkToolsDomItemNotFoundException("Couldn't get form to insert new phone.", $request);
+            }
         }
-      
+
         // Get new phone.
         $result = $this->getNewPhone();
 
