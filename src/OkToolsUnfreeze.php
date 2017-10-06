@@ -5,6 +5,7 @@ namespace Dirst\OkTools;
 use Dirst\OkTools\Requesters\RequestCurl;
 use SmsActivator\SmsActivator;
 use SmsActivator\Service\smsActivate;
+use SmsActivator\Service\getSms;
 use GuzzleHttp\Client;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Activators\OkToolsUnfreezeException;
@@ -33,19 +34,25 @@ class OkToolsUnfreeze
   // @var string russian country code.
     protected $ruCountry = "10414533690";
 
-  // @var string activator key.
-    protected $activatorKey = "d707e6271eb4b16d945b453144063bAA";
-
-  /**
-   * Construct Unfreeze object.
-   *
-   * @param string $proxy
-   *   Proxy string.
-   */
-    public function __construct($proxy = null)
+    // Service type.
+    const SMSACTIVATE = 0;
+    const GETSMS = 1;
+    
+    /**
+     * Construct Unfreeze object.
+     *
+     * @param string $activatorKey
+     *   Activator key.
+     * @param string $proxy
+     *   Proxy.
+     * @param string $type
+     *   Activate type.
+     */
+    public function __construct($activatorKey, $proxy = null, $type = self::SMSACTIVATE)
     {
         $client= new Client();
-        $this->activator = new SmsActivator(new smsActivate($this->activatorKey), $client);
+        $activator = $type == self::SMSACTIVATE ? new smsActivate($activatorKey) : new getSms($activatorKey);
+        $this->activator = new SmsActivator($activator, $client);
         $this->requester = new RequestCurl($proxy, $this->userAgent);
     }
 
