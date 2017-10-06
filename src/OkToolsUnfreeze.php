@@ -69,14 +69,22 @@ class OkToolsUnfreeze
    */
     public function unfreezeAccount($verificationUrl, $waitInterval = 300)
     {
-      
+            
         $request = $this->requester->requestGet($verificationUrl);
         $domHumanCheck = str_get_html($request);
-      
-        // Check if phone form already exists.
-        if (!($form = $domHumanCheck->find("form", 0))) {
+
+        // Check if bind phone form already shown.
+        if (!($form = $domHumanCheck->find("div[data-logloc='uvBindPhone'] form", 0))) {
+            // Check if precaptcha form exists.
+            if ($form = $domHumanCheck->find("div[data-logloc='uvPrePhoneCaptcha'] form", 0)) {
+                $domHumanCheck = $this->getNextForm(
+                    $this->okUrl . $form->action,
+                    ["st.posted" => "set", "button_continue" => "Продолжить"]
+                );
+            }
+
             // Get link to chose another phone.
-            if (!($choseAnotherPhone = $domHumanCheck->find('a.ai', 0))) {
+            if (!($choseAnotherPhone = $domHumanCheck->find('a.ai', 0) || $choseAnotherPhone = $domHumanCheck->find('a.acor', 0))) {
                 throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
             }
 
@@ -87,7 +95,6 @@ class OkToolsUnfreeze
                 throw new OkToolsDomItemNotFoundException("Couldn't get form to insert new phone.", $request);
             }
         }
-
         // Get new phone.
         $result = $this->getNewPhone();
 
@@ -105,21 +112,25 @@ class OkToolsUnfreeze
       
         // Send phone code.
         $formData = [
-        "st.posted" => "set",
-        "st.smsCode" => $code,
-        "button_continue" => "Подтвердить код"
+          "st.posted" => "set",
+          "st.smsCode" => $code,
+          "button_continue" => "Подтвердить код"
         ];
         $form = $this->getNextForm($this->okUrl . $form->action, $formData);
-      
-        // Set new password.
-        $password = md5(uniqid()) . "_";
-        $formData = [
-        "st.posted" => "set",
-        "st.splnk" => null,
-        "st.password" => $password,
-        "button_submit" => "Сохранить"
-        ];
-        $request = $this->requester->requestPost($this->okUrl . $form->action, $formData);
+        
+        // Change password if required.
+        $password = false;
+        if ($form->find("div[data-logloc='uvChangePassword'] form", 0)) {
+            // Set new password.
+            $password = md5(uniqid()) . "_";
+            $formData = [
+              "st.posted" => "set",
+              "st.splnk" => null,
+              "st.password" => $password,
+              "button_submit" => "Сохранить"
+            ];
+            $request = $this->requester->requestPost($this->okUrl . $form->action, $formData);
+        }
         if (strpos($this->requester->getHeaders()['Location'], 'st.verificationResult=ok') !== false) {
             $this->activator->setComplete($result['id']);
             return ["phone" => $result['phone'], 'password' => $password];
