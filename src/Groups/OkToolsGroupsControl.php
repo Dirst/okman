@@ -14,6 +14,8 @@ use Dirst\OkTools\Exceptions\OkToolsGroupRoleAssignException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupJoinException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupLoadException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupMembersLoadException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetFeedsException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetTopicDetailsException;
 
 /**
  * Groups control for account.
@@ -401,4 +403,208 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             throw new OkToolsGroupRoleAssignException("Couldn't assign role to user", var_export($result, true));
         }
     }
+
+    /**
+     * Get media topics feed.
+     *
+     * @param int $count
+     *   Count to retrieve.
+     * @param string $anchor
+     *   Anchor of the page to get.
+     *
+     * @throws OkToolsGroupGetFeedsException
+     *   Feeds get error.
+     *
+     * @return array
+     *   Result with feeds.
+     */
+    public function getMediaTopicsFeed($count = 100, $anchor = null)
+    {
+        $form = [
+          "anchor" => $anchor,
+          "count" => $count,
+          "direction" => "FORWARD",
+          "features" => "PRODUCT.1",
+          "fields" => "media_topic.*,user.*,app.*,group.*,group_album.*,group_photo.*,discussion.*,"
+            . "like_summary.*,music_album.*,music_track.*,music_artist.*,music_playlist.*,video.*,poll.*,present.*,"
+            . "present_type.*,status.*,album.*,photo.*,place.*,achievement.*,achievement_type.*,comment.*,"
+            . "comment.attachments,attachment_photo.*,attachment_audio_rec.*,attachment_movie.*,attachment_topic.*,"
+            . "comment.attachment_resources,mood.*,motivator.*",
+          "filter" => "GROUP_THEMES",
+          "gid" => $this->groupId,
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
+        ];
+        
+        // Make request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/mediatopics/getTopics",
+            $form
+        );
+
+        // Couldn't retrieve group topics feed.
+        if (isset($result['error_code'])) {
+            throw new OkToolsGroupGetFeedsException("Couldn't get group feed.", var_export($result, true));
+        } else {
+            return $result;
+        }
+    }
+
+    
+    
+//    /**
+//     * Get media topics feed.
+//     *
+//     * @param int $count
+//     *   Count to retrieve.
+//     * @param string $anchor
+//     *   Anchor of the page to get.
+//     *
+//     * @throws OkToolsGroupGetFeedsException
+//     *   Couldn't find anchor.
+//     *
+//     * @return array
+//     *   Result with feeds.
+//     */
+//    public function getMediaTopicsFeed($count = 100, $anchor = null)
+//    {
+//        // Get first page anchor.
+//        if (!$anchor) {
+//            $result = $this->getFeed("stream.get-first");
+//
+//            // Get anchor.
+//            if (isset($result['anchor'])) {
+//                $anchor = ['anchor'];
+//            } else {
+//                throw new OkToolsGroupGetFeedsException("Couldn't find anchor", var_export($result, true));
+//            }
+//        }
+//
+//        //  Get more.
+//        $result = $this->getFeed("stream.get-more", $count, $anchor);
+//        
+//        return $result;
+//    }
+// 
+//    /**
+//     * Get feeds of the group.
+//     *
+//     * @param string $id
+//     *   Method id.
+//     * @param int $count
+//     *   Count to retrieve.
+//     * @param string $anchor
+//     *   Page anchor to use to retrieve feeds page.
+//     *
+//     * @throws OkToolsGroupGetFeedsException
+//     *   Couldn't get feeds response.
+//     *
+//     * @return array
+//     *   Feeds array.
+//     */
+//    protected function getFeed($id = "stream.get-first", $count = 20, $anchor = null)
+//    {
+//        $methods = [];
+//        $methods[] = [
+//            "method" => "stream.get",
+//            "params" => [
+//                "client" => $this->OkToolsClient->getAndroidClient(),
+//                "count" => $count,
+//                "anchor" => $anchor,
+//                "direction" => "FORWARD",
+//                "features" => "PRODUCT.1",
+//                "fieldset" => "android.35",
+//                "gid" => $this->groupId,
+//                "mark_as_read" => "false",
+//                "patternset" => "android.13",
+//            ]
+//        ];
+//        $form = [
+//            "application_key" => $this->OkToolsClient->getAppKey(),
+//            "id" => $id,
+//            'session_key' => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+//            "methods" => json_encode($methods)
+//        ];
+//        
+//        // Make request.
+//        $result = $this->OkToolsClient->makeRequest(
+//            $this->OkToolsClient->getApiEndpoint() . "/batch/execute",
+//            $form,
+//            "post"
+//        );
+//        
+//        // Get feeds.
+//        if (isset($result['stream_get_response'])) {
+//            return $result['stream_get_response'];
+//        } else {
+//            throw new OkToolsGroupGetFeedsException("Couldn't get appropriate response", var_export($result, true));
+//        }
+//    }
+//
+//    /**
+//     * Get topic details by id.
+//     *
+//     * @param int $topicId
+//     *   Topic id.  
+//     *
+//     * @throws OkToolsGroupGetTopicDetailsException
+//     *   Throws when couldn't get topic details.
+//     *
+//     * @return array
+//     *   Topic details.
+//     */
+//    public function getTopicDetails($topicId)
+//    {
+//        $methods = [];
+//        $methods[] = [
+//            "method" => "discussions.get",
+//            "params" => [
+//                "discussionId" => $topicId,
+//                "discussionType" => "GROUP_TOPIC",
+//                "features" => "PRODUCT.1",
+//                "fieldset" => "android.1"
+//            ]
+//        ];
+//        $methods[] = [
+//            "method" => "mediatopic.getByIds",
+//            "params" => [
+//                "features" => "PRODUCT.1",
+//                "fields" => "media_topic.*,app.*,group_album.*,catalog.*,group_photo.*,group.*,music_track.*,poll.*,"
+//                  . "present.*,present_type.*,status.*,album.*,photo.*, video.*,achievement_type.*,place.*,comment.*,"
+//                  . "comment.attachments,attachment_photo.*,attachment_audio_rec.*,attachment_movie.*,"
+//                  . "attachment_topic.*,comment.attachment_resources,mood.*,motivator.*,user.gender,user.pic190x190,"
+//                  . "user.first_name,suser.name,user.uid,user.location,user.last_name,user.age,user.online",
+//                "topic_ids" => [
+//                  "supplier" => "discussions.get.topic_id"
+//                ]
+//            ]
+//        ];
+//        
+//        $form = [
+//            "application_key" => $this->OkToolsClient->getAppKey(),
+//            "id" => "discussions.getComments",
+//            'session_key' => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+//            "format" => "json",
+//            "methods" => $methods
+//        ];
+//
+//        // Make request.
+//        $result = $this->OkToolsClient->makeRequest(
+//            $this->OkToolsClient->getApiEndpoint() . "/batch/execute",
+//            $form,
+//            "post"
+//        );
+//        
+//        // Get response.
+//        if (isset($result['discussions_get_response']) && isset($result['mediatopic_getByIds_response'])) {
+//            return $result;
+//        } else {
+//            throw new OkToolsGroupGetTopicDetailsException("Couldn't get topic details.", var_export($result, true));
+//        }
+//    }
+    
+//    public function postMediaTopic()
+//    {
+//      
+//    }
 }

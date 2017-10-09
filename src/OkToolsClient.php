@@ -36,7 +36,7 @@ class OkToolsClient
     private $deviceIdArray;
 
     // @var string android client string.
-    private $androidClient = "android_8_15.2.1";
+    private $androidClient = "android_8_17.10.3";
     
     // @var string login.
     private $login;
@@ -359,6 +359,17 @@ class OkToolsClient
     public function getAccountApiId()
     {
         return $this->loginResponseData['auth_login_response']['uid'];
+    }
+
+    /**
+     * Get android client.
+     *
+     * @return string
+     *   Android client.
+     */
+    public function getAndroidClient()
+    {
+        return $this->androidClient;
     }
     
     /**
