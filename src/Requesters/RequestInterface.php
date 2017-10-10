@@ -33,16 +33,14 @@ interface RequestInterface
      *   Url to send request to.
      * @param mixed $postData
      *   Data to post. json string or array.
-     * @param boolean $multipart
-     *   Send as multipart.
-     *
+     * 
      * @throw OkToolsResponseException
      *   Will be thrown if response code != 200.
      *
      * @return mixed
      *   Html response string or false on failure.
      */
-    public function requestPost($url, $postData, $multipart = false);
+    public function requestPost($url, $postData);
 
     /**
      * Gets headers from current request.

@@ -16,6 +16,8 @@ use Dirst\OkTools\Exceptions\Group\OkToolsGroupLoadException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupMembersLoadException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetFeedsException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupPostTopicException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetPhotosUploadDataException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupUploadPhotosException;
 
 /**
  * Groups control for account.
@@ -535,4 +537,104 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             );
         }
     }
+    
+    /**
+     * Upload photo by url and retrieve it's uploaded ID.
+     *
+     * @param string $imagePath
+     *   Path to image to upload.
+     *
+     * @return string
+     *   Photo Id.
+     */
+    public function uploadAndGetPhotoId($imagePath)
+    {
+        $uploadurl = $this->getPhotoUploadUrl();
+        return $this->uploadPhotoViaRetrievedUrl($uploadurl, $imagePath);
+    }
+    
+    /**
+     * Get upload data array.
+     *
+     * @return string
+     *   Upload url.
+     *
+     * @throws OkToolsGroupGetPhotosUploadDataException
+     *   Throws when no upropriate data has been recieved.
+     */
+    protected function getPhotoUploadUrl()
+    {
+        $methods = [];
+        $methods[] = [
+            "method" => "photosV2.getUploadUrl",
+            "params" => [
+              "count" => "1",
+              "gid" => $this->groupId
+            ]
+        ];
+        
+//        $methods[] = [
+//            "method" => "settings.get",
+//            "params" => [
+//              "keys" => "photo.max.quality",
+//              "version" => "324"
+//            ]
+//        ];
+ 
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "methods" => json_encode($methods),
+            "id" => "photosV2.getUploadUrl",
+            "format" => "json"
+        ];
+        
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/batch/execute",
+            $form,
+            "post"
+        );
+        
+        if (isset($result['photosV2_getUploadUrl_response']) && isset($result['photosV2_getUploadUrl_response']['upload_url'])) {
+            return $result['photosV2_getUploadUrl_response']['upload_url'];
+        } else {
+            throw new OkToolsGroupGetPhotosUploadDataException(
+              "Couldn't get upload data to perform photo upload",
+              var_export($result, true)
+            );
+        }
+    }
+    
+    /**
+     * Upload photo via retrieved url.
+     *
+     * @param string $uploadUrl
+     *   Upload url on ok side.
+     * @param string $imagePath
+     *   Absolute url to photo on server or in the web.
+     *
+     * @return string
+     *   Uploaded photo Id.
+     *
+     * @throws OkToolsGroupUploadPhotosException
+     *   Thrown when couldn't upload photo.
+     */
+    protected function uploadPhotoViaRetrievedUrl($uploadUrl, $imagePath)
+    {
+        $result = $this->OkToolsClient->makeRequest(
+            $uploadUrl,
+            file_get_contents($imagePath),
+            "post",
+            false,
+            ["Content-Type" => "application/octet-stream"]
+        );
+
+        if (isset($result['photos'])) {
+            return current($result['photos'])['token'];
+        } else {
+            throw new OkToolsGroupUploadPhotosException("Couldn't upload photo", var_export($result, true));
+        }
+    }
+    
 }

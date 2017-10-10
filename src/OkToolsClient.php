@@ -383,6 +383,8 @@ class OkToolsClient
      *   Get or Post request.
      * @param string $browser
      *   Use request as browser or as android device.
+     * @param array $additionalHeaders
+     *   ADditional headers to set.
      *
      * @throws OkToolsCaptchaAppearsException
      *   Thrown if there is aptcha on a page.
@@ -390,7 +392,7 @@ class OkToolsClient
      * @return string|array
      *   Web page or decoded json string.
      */
-    public function makeRequest($url, $formData = null, $type = "get", $browser = false)
+    public function makeRequest($url, $formData = null, $type = "get", $browser = false, $additionalHeaders = [])
     {
       // Set base headers
         $headers = [
@@ -406,6 +408,11 @@ class OkToolsClient
             $headers["X-Requested-With"] = "ru.ok.android";
         }
       
+        // Set additional headers.
+        if (!empty($additionalHeaders)) {
+            $headers = array_merge($headers, $additionalHeaders);
+        }
+        
         $this->requestBehaviour->setHeaders($headers);
 
         // Send request.
