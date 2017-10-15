@@ -18,6 +18,7 @@ use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetFeedsException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupPostTopicException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetPhotosUploadDataException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupUploadPhotosException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetTopicDetailsException;
 
 /**
  * Groups control for account.
@@ -97,7 +98,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
           "gid" => $this->groupId,
           "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
         ];
-        
+
         // Page anchor.
         if ($pageAnchor) {
             $form['anchor'] = $pageAnchor;
@@ -449,6 +450,73 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             throw new OkToolsGroupGetFeedsException("Couldn't get group feed.", var_export($result, true));
         } else {
             return $result;
+        }
+    }
+
+    /**
+     * Get topic details.
+     *
+     * @param string $topicId
+     *   Topic Id.
+     *
+     * @return array
+     *   Array of topic details.
+     * 
+     * @throws OkToolsGroupGetTopicDetailsException
+     *   Thrown when couldn't get appropriate response.
+     */
+    public function getTopicDetails($topicId)
+    {
+        $methods = [];
+        $methods[] = [
+            "method" => "discussions.get",
+            "params" => [
+                "discussionId" => $topicId,
+                "discussionType" => "GROUP_TOPIC",
+                "features" => "PRODUCT.1",
+                "fieldset" => "android.2"
+            ]
+        ];
+
+        $methods[] = [
+            "method" => "mediatopic.getByIds",
+            "params" => [
+                "features" => "PRODUCT.1",
+                "fields" => "media_topic.*,app.*,group_album.*,catalog.*,group_photo.*,group.*,music_track."
+                . "*,poll.*,present.*,present_type.*,present_type.has_surprise,status.*,album.*,photo.*, video.*,"
+                . "achievement_type.*,place.*,comment.*,comment.attachments,attachment_photo.*,attachment_audio_rec.*,"
+                . "attachment_movie.*,attachment_topic.*,comment.attachment_resources,mood.*,motivator.*,user.gender,"
+                . "user.pic190x190,user.first_name,user.name,user.uid,user.location,user.last_name,user.age,"
+                . "user.online",
+                "topic_ids" => [
+                    "supplier" => "discussions.get.topic_id"
+                ]
+            ]
+        ];
+        
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "id" => "discussions.getComments",
+            "format" => "json",
+            "methods" => json_encode($methods),
+        ];
+
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/batch/execute",
+            $form,
+            "post"
+        );
+
+        // Check result.
+        if (isset($result['mediatopic_getByIds_response'])) {
+            return $result['mediatopic_getByIds_response'];
+        } else {
+            throw new OkToolsGroupGetTopicDetailsException(
+              "Couldn't get details of topic",
+              var_export($result, true)
+            );
         }
     }
     
