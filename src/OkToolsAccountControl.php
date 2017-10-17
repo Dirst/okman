@@ -1,16 +1,11 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace Dirst\OkTools;
 
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesDoneBeforeException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesNotPermittedException;
+use Dirst\OkTools\Exceptions\OkToolsAccountUsersSearchException;
 
 /**
  * ACcount control class.
@@ -100,6 +95,115 @@ class OkToolsAccountControl extends OkToolsBaseControl
       // Check if like has been done.
         if (!(isset($result['summary']) && $result['summary']['self'])) {
             throw new OkToolsLikesException("Photo has not been liked", var_export($result, true));
+        }
+    }
+
+    /**
+     * Get users from OK search.
+     *
+     * @param int $count
+     *   Users count to retrieve.
+     * @param string $anchor
+     *   Page anchor.
+     * @param int $ageFrom
+     *   Min age. Could be started from 14 only.
+     * @param int $ageTo
+     *   Max age. Could be 100 maximum.
+     * @param boolean $isOnline
+     *   Should users be online only.
+     * @param string $gender
+     *   m - male or f - female.
+     * @param boolean $isSingle
+     *   Retrieve users that are sinles only.
+     * @param array $countries
+     *   Countries ids array.
+     * @param string $city
+     *   City
+     *
+     * @return array
+     *   Users array with anchor and has_more.
+     *
+     * @throws OkToolsAccountUsersSearchException
+     *   Thrown if not appropriate response has been received.
+     */
+    public function getUsersFromSearch(
+        $count = 100,
+        $anchor = null,
+        $ageFrom = 14,
+        $ageTo = 99,
+        $isOnline = false,
+        $gender = null,
+        $isSingle = false,
+        $countries = [],
+        $city = null
+    ) {
+
+        $form = [
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "count" => $count,
+          "fields" => "user.last_online_ms,user.show_lock,user.pic320min,user.pic128x128,user.last_name,"
+            . "user.private,user.birthday,user.gender,user.pic190x190,user.premium,user.first_name,user.uid,"
+            . "user.location,user.can_vcall,user.pic240min,user.vip,user.age,user.can_vmail,user.online,app.*",
+          "types" => "USER",
+          "format" => "json",
+          "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
+        ];
+
+        // Page anchor.
+        if ($anchor) {
+            $form['anchor'] = $pageAnchor;
+        }
+        
+        // Age.
+        $filters['type'] = "user";
+        $filters['min_age'] = $ageFrom;
+        $filters['max_age'] = $ageTo;
+        
+        // Gender
+        if ($gender !== null) {
+            if ($gender == "m") {
+                $filters['gender_male'] = true;
+            } else {
+                $filters['gender_female'] = true;
+            }
+        }
+  
+        // Single.
+        if ($isSingle) {
+            $filters['isSingle'] = true;
+        }
+
+        // City.
+        if ($city) {
+            $filters['city'] = $city;
+        }
+
+        // Countries.
+        if (!empty($countries)) {
+            $filters['country_ids'] = $countries;
+        }
+        
+        // Encode filters to json string.
+        $form['filters'][] = json_encode($filters);
+        
+        // Perform request.
+        $users = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/search/quick",
+            $form,
+            "post"
+        );
+
+        // Check if users have been retrieved;
+        if (isset($users['found']) && !empty($users['found'])) {
+            unset($users['found']);
+            return $users;
+        } elseif (empty($users['found'])) {
+            return [];
+        } else {
+            throw new OkToolsAccountUsersSearchException(
+                "Couldn't find users with current parameters",
+                var_export($users, true)
+            );
         }
     }
 }
