@@ -6,6 +6,11 @@ use Dirst\OkTools\Exceptions\Likes\OkToolsLikesDoneBeforeException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesNotPermittedException;
 use Dirst\OkTools\Exceptions\OkToolsAccountUsersSearchException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteCantBeDoneException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteDoneBeforeException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteAcceptorNotFoundException;
+use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
 
 /**
  * ACcount control class.
@@ -203,6 +208,101 @@ class OkToolsAccountControl extends OkToolsBaseControl
             throw new OkToolsAccountUsersSearchException(
                 "Couldn't find users with current parameters",
                 var_export($users, true)
+            );
+        }
+    }
+
+        /**
+     * Perform invite operation.
+     *
+     * @notice Currently assume that account is moderator for group to invite to.
+     *
+     * @param int $userId
+     *   User id to invite. Id should be in api format.
+     * @param int $groupId
+     *   Group Id to invite to.
+     *
+     * @throws OkToolsInviteCantBeDoneException
+     *   Invite couldn't be done as user blocked this ability or account is blocked.
+     * @throws OkToolsInviteAcceptorNotFoundException
+     *   Couldn't find acceptor group. Group has been blocked or there is no group on this page.
+     * @throws OkToolsInviteDoneBeforeException
+     *   Invite has been done before for this user.
+     * @throws OkToolsDomItemNotFoundException
+     *   Couldn't find needed dom element.
+     * @throws OkToolsInviteFailedException
+     *   Invite confirm request has not been finalyzed correctly.
+     */
+    public function inviteUserToGroup($userId, $groupId)
+    {
+        // Form send.
+        $form = [
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "fid" => $userId,
+          "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+          "app.params" => "x"
+        ];
+
+        // Get mobile page to invite user.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . "/api/user_invite_to_group",
+            $form,
+            "get",
+            true
+        );
+
+        // Convert to dom.
+        $mobilePage = str_get_html($result);
+        
+        // Get groups list.
+        if (!($list = $mobilePage->find("#groups-list", 0))) {
+            throw new OkToolsInviteCantBeDoneException("User couldn't be invited or account is blocked.", $result);
+        }
+
+        // Check if already invited.
+        if (!($groups = $list->find("li[id*=$groupId]", 0))) {
+            throw new OkToolsInviteAcceptorNotFoundException("Couldn't find acceptor group.", $result);
+        }
+
+        // Check if already invited.
+        if ($groups->find('a[class*="group-select __disabled"]', 0)) {
+            throw new OkToolsInviteDoneBeforeException("User has been already invited before.", $result);
+        }
+
+        // Sleep pause.
+        sleep(rand(0, 3));
+        
+        // Confirm invite page
+        $confirmInvitePage = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $groups->find("a", 0)->href,
+            [],
+            "get",
+            true
+        );
+        $confirmInvitePage = str_get_html($confirmInvitePage);
+
+        // Check if form exists.
+        if (!$confirmInvitePage->find("form", 0)) {
+            throw new OkToolsDomItemNotFoundException("Couldn't find invite html form", $confirmInvitePage);
+        }
+        
+        // Sleep pause.
+        sleep(rand(1, 3));
+
+        // Send invite request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $confirmInvitePage->find("form", 0)->action,
+            ["fr.posted" => "set", "button_send" => "Отправить"],
+            "post",
+            true
+        );
+        $mobilePage = str_get_html($result);
+
+        // Check groups lits - success criteria.
+        if (!$mobilePage->find("#groups-list", 0)) {
+            throw new OkToolsInviteFailedException(
+                "Couldn't finalize invite. No groups-list fiund as it should.",
+                $result
             );
         }
     }
