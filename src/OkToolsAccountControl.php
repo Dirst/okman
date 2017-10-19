@@ -189,7 +189,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         }
         
         // Encode filters to json string.
-        $form['filters'][] = json_encode($filters);
+        $form['filters']= json_encode([$filters]);
         
         // Perform request.
         $users = $this->OkToolsClient->makeRequest(
