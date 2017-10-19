@@ -147,7 +147,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
           "application_key" => $this->OkToolsClient->getAppKey(),
           "count" => $count,
           "fields" => "user.last_online_ms,user.show_lock,user.pic320min,user.pic128x128,user.last_name,"
-            . "user.private,user.birthday,user.gender,user.pic190x190,user.premium,user.first_name,user.uid,"
+            . "user.private,user.name,user.birthday,user.gender,user.pic190x190,user.premium,user.first_name,user.uid,"
             . "user.location,user.can_vcall,user.pic240min,user.vip,user.age,user.can_vmail,user.online,app.*",
           "types" => "USER",
           "format" => "json",
