@@ -156,7 +156,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
 
         // Page anchor.
         if ($anchor) {
-            $form['anchor'] = $pageAnchor;
+            $form['anchor'] = $anchor;
         }
         
         // Age.
