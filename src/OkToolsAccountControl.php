@@ -11,6 +11,7 @@ use Dirst\OkTools\Exceptions\Invite\OkToolsInviteDoneBeforeException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteAcceptorNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteTooOftenException;
 
 /**
  * ACcount control class.
@@ -297,7 +298,15 @@ class OkToolsAccountControl extends OkToolsBaseControl
             true
         );
         $mobilePage = str_get_html($result);
-
+        
+        // Check if invite is not too often.
+        if (strpos($mobilePage->innerhtml, "Вы слишком часто приглашаете людей в группы") !== FALSE) {
+            throw new OkToolsInviteTooOftenException(
+                "Invite is too often.",
+                $result
+            );
+        }
+        
         // Check groups lits - success criteria.
         if (!$mobilePage->find("#groups-list", 0)) {
             throw new OkToolsInviteFailedException(
