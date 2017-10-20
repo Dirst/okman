@@ -300,7 +300,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         $mobilePage = str_get_html($result);
         
         // Check if invite is not too often.
-        if (strpos($mobilePage->innerhtml, "Вы слишком часто приглашаете людей в группы") !== FALSE) {
+        if (strpos($result, "Вы слишком часто приглашаете людей в группы") !== FALSE) {
             throw new OkToolsInviteTooOftenException(
                 "Invite is too often.",
                 $result
