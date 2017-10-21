@@ -178,6 +178,11 @@ class OkToolsAccountControl extends OkToolsBaseControl
         if ($isSingle) {
             $filters['isSingle'] = true;
         }
+        
+        // Online
+        if ($isOnline) {
+            $filters['isOnline'] = true;
+        }
 
         // City.
         if ($city) {
