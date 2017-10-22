@@ -8,6 +8,7 @@ use Dirst\OkTools\Requesters\RequestersFactory;
 use Dirst\OkTools\Requesters\RequestersTypesEnum;
 use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
 use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
+use Dirst\OkTools\Exceptions\OkToolsUnauthorizedUserException;
 
 /**
  * Base class used with other Ok tools.
@@ -139,6 +140,13 @@ class OkToolsClient
                         $login,
                         var_export($data, true),
                         $data['ver_redirect_url']
+                    );
+                    break;
+                case RequestersHttpCodesEnum::HTTP_UNAUTHORIZED:
+                    throw new OkToolsUnauthorizedUserException(
+                        "Couldn't login with message {$data['error_msg']}",
+                        $login,
+                        var_export($data, true)
                     );
                     break;
             }
