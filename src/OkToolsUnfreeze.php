@@ -84,7 +84,7 @@ class OkToolsUnfreeze
             }
 
             // Get link to chose another phone.
-            if (!($choseAnotherPhone = $domHumanCheck->find('a.ai', 0) || $choseAnotherPhone = $domHumanCheck->find('a.acor', 0))) {
+            if (!( ($choseAnotherPhone = $domHumanCheck->find('a.ai', 0)) || ($choseAnotherPhone = $domHumanCheck->find('a.acor', 0)) )) {
                 throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
             }
 
@@ -120,7 +120,7 @@ class OkToolsUnfreeze
         
         // Change password if required.
         $password = false;
-        if ($form->find("div[data-logloc='uvChangePassword'] form", 0)) {
+        if ($form->find("div[data-logloc='uvChangePassword'] form", 0) || $form->find("#new-password", 0) ) {
             // Set new password.
             $password = md5(uniqid()) . "_";
             $formData = [
@@ -129,14 +129,16 @@ class OkToolsUnfreeze
               "st.password" => $password,
               "button_submit" => "Сохранить"
             ];
-            $request = $this->requester->requestPost($this->okUrl . $form->action, $formData);
+            $form = $this->requester->requestPost($this->okUrl . $form->action, $formData);
         }
+
+        // Check success status.
         if (strpos($this->requester->getHeaders()['Location'], 'st.verificationResult=ok') !== false) {
             $this->activator->setComplete($result['id']);
             return ["phone" => $result['phone'], 'password' => $password];
         } else {
             $this->activator->setCancel($result['id']);
-            throw new OkToolsUnfreezeException("Couldn't retrieve success status", $request);
+            throw new OkToolsUnfreezeException("Couldn't retrieve success status", $form);
         }
     }
 
