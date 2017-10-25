@@ -123,12 +123,10 @@ class OkToolsClient
         // Set up application key.
         $this->appKey = $okAppKey;
         
-        // Login again or use saved data from previous login to retrieve new.
+        // Login again or use saved data from previous login to retrieve new session key.
         $credsFilePath = $loginResponseDataDir . "/$login";
-        if (!file_exists($credsFilePath)) {
+        if ( !(!file_exists($credsFilePath) && $data = $this->updateLogin($credsFilePath, $okAppKey)) )  {
             $data = $this->login($login, $pass, $okAppKey);
-        } else {
-            $data = $this->updateLogin($credsFilePath, $okAppKey);
         }
 
         // Check for error.
@@ -154,7 +152,8 @@ class OkToolsClient
 
         // If all is ok - trying to get session key.
         if (isset($data['auth_login_response']) && isset($data['auth_login_response']['session_key'])) {
-            $data['time'] = time();
+            $time = time();
+            $data['time'] = ($data['time'] + $this->updateLoginTimeIntervalSeconds <= $time) ? $time : $data['time'];
             file_put_contents($credsFilePath, serialize($data));
             $this->loginResponseData = $data;
         } else {
@@ -175,8 +174,8 @@ class OkToolsClient
      * @param string $okAppKey
      *   App key.
      *
-     * @return array
-     *   Json response as array.
+     * @return array|boolean
+     *   Json response as array or false if no session key.
      */
     protected function updateLogin($credsFilePath, $okAppKey)
     {
@@ -199,7 +198,13 @@ class OkToolsClient
             ];
 
             $dataDecoded = $this->makeRequest("{$this->apiBaseEndpoint}/auth/loginByToken", $form, "get");
-            $data['auth_login_response']['session_key'] = $dataDecoded['session_key'];
+            
+            // Check if session key exists.
+            if (isset($dataDecoded['session_key'])) {
+                $data['auth_login_response']['session_key'] = $dataDecoded['session_key'];
+            } else {
+                return false;
+            }
         }
 
         return $data;
