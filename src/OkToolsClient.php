@@ -123,7 +123,7 @@ class OkToolsClient
         // Set up application key.
         $this->appKey = $okAppKey;
         
-        // Login again or use saved data from previous login to retrieve new session key.
+        // Login again or use saved data from previous login to retrieve new session key again.
         $credsFilePath = $loginResponseDataDir . "/$login";
         if ( !(!file_exists($credsFilePath) && $data = $this->updateLogin($credsFilePath, $okAppKey)) )  {
             $data = $this->login($login, $pass, $okAppKey);
