@@ -9,6 +9,7 @@ use SmsActivator\Service\getSms;
 use GuzzleHttp\Client;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Activators\OkToolsUnfreezeException;
+use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
 
 /**
  * Class to unfreeze user account.
@@ -70,7 +71,7 @@ class OkToolsUnfreeze
     public function unfreezeAccount($verificationUrl, $waitInterval = 300)
     {
             
-        $request = $this->requester->requestGet($verificationUrl);
+        $request = $this->makeRequest($verificationUrl);
         $domHumanCheck = str_get_html($request);
 
         // Check if bind phone form already shown.
@@ -228,7 +229,7 @@ class OkToolsUnfreeze
     protected function getNextForm($url, $formData)
     {
         // Get phone code enter page.
-        $request = $this->requester->requestPost($url, $formData);
+        $request = $this->makeRequest($url, $formData, "post");
         $domHumanCheck = str_get_html($request);
       
         if (!($form = $domHumanCheck->find("form", 0))) {
@@ -236,5 +237,39 @@ class OkToolsUnfreeze
         } else {
             return $form;
         }
+    }
+    
+    /**
+     * Make request.
+     *
+     * @param string $url
+     *   Url to send to.
+     * @param array $formData
+     *   Data array to post/get
+     * @param string $type
+     *   Request type.
+     *
+     * @return string
+     *   Response string.
+     * 
+     * @throws OkToolsCaptchaAppearsException
+     */
+    protected function makeRequest($url, $formData = null, $type = "get")
+    {
+        // Send request.
+        if ($type == "get") {
+            $result = $this->requester->requestGet($url, $formData);
+        } else {
+            $result = $this->requester->requestPost($url, $formData);
+        }
+        
+        $mobilePage = str_get_html($result);
+        
+        // Check if captcha shows up.
+        if ($mobilePage->find("#captcha", 0)) {          
+            throw new OkToolsCaptchaAppearsException("Captcha appears and couldn'been resolved", null, $result);
+        }
+  
+        return $result;
     }
 }
