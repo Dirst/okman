@@ -9,6 +9,7 @@ use Dirst\OkTools\Requesters\RequestersTypesEnum;
 use Dirst\OkTools\Requesters\RequestersHttpCodesEnum;
 use Dirst\OkTools\Exceptions\OkToolsCaptchaAppearsException;
 use Dirst\OkTools\Exceptions\OkToolsUnauthorizedUserException;
+use Dirst\OkTools\Exceptions\OkToolsIpBlockedException;
 
 /**
  * Base class used with other Ok tools.
@@ -125,7 +126,7 @@ class OkToolsClient
         
         // Login again or use saved data from previous login to retrieve new session key again.
         $credsFilePath = $loginResponseDataDir . "/$login";
-        if ( !(!file_exists($credsFilePath) && $data = $this->updateLogin($credsFilePath, $okAppKey)) )  {
+        if ( !(file_exists($credsFilePath) && $data = $this->updateLogin($credsFilePath, $okAppKey)) )  {
             $data = $this->login($login, $pass, $okAppKey);
         }
 
@@ -147,6 +148,12 @@ class OkToolsClient
                         var_export($data, true)
                     );
                     break;
+                case 9:
+                    throw new OkToolsIpBlockedException(
+                        "Couldn't login with message {$data['error_msg']}",
+                        $login,
+                        var_export($data, true)
+                    );
             }
         }
 
