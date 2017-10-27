@@ -74,6 +74,18 @@ class OkToolsUnfreeze
         $request = $this->makeRequest($verificationUrl);
         $domHumanCheck = str_get_html($request);
 
+        // Check if try later.
+        if ($domHumanCheck->find("div[data-logloc='uvTryLater']", 0)) {
+            throw new OkToolsUnfreezeException("Couldn't unfreeze. Sms limit. Will try later.", "");
+        }
+        
+        
+        // Check if guess friends
+        if ($guessFriend = $domHumanCheck->find("div[data-logloc='uvGuessFriends']", 0)) {
+            $request = $this->makeRequest($this->okUrl . $guessFriend->find(".tabs_list a", 0));
+            $domHumanCheck = str_get_html($request);
+        }
+        
         // Check if bind phone form already shown.
         if (!($form = $domHumanCheck->find("div[data-logloc='uvBindPhone'] form", 0))) {
             // Check if precaptcha form exists.
@@ -254,7 +266,7 @@ class OkToolsUnfreeze
      * 
      * @throws OkToolsCaptchaAppearsException
      */
-    protected function makeRequest($url, $formData = null, $type = "get")
+    protected function makeRequest($url, $formData = [], $type = "get")
     {
         // Send request.
         if ($type == "get") {
@@ -267,7 +279,7 @@ class OkToolsUnfreeze
         
         // Check if captcha shows up.
         if ($mobilePage->find("#captcha", 0)) {          
-            throw new OkToolsCaptchaAppearsException("Captcha appears and couldn'been resolved", null, $result);
+            throw new OkToolsCaptchaAppearsException("Captcha on request", null, $result);
         }
   
         return $result;
