@@ -279,7 +279,7 @@ class OkToolsUnfreeze
         
         // Check if captcha shows up.
         if ($mobilePage->find("#captcha", 0)) {          
-            throw new OkToolsCaptchaAppearsException("Captcha on request", null, $result);
+            throw new OkToolsCaptchaAppearsException("Captcha on request", null, $result, $this->requester);
         }
   
         return $result;
