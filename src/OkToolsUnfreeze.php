@@ -82,7 +82,7 @@ class OkToolsUnfreeze
         
         // Check if guess friends
         if ($guessFriend = $domHumanCheck->find("div[data-logloc='uvGuessFriends']", 0)) {
-            $request = $this->makeRequest($this->okUrl . $guessFriend->find(".tabs_list a", 0));
+            $request = $this->makeRequest($this->okUrl . $guessFriend->find(".tabs_list a", 0)->href);
             $domHumanCheck = str_get_html($request);
         }
         
@@ -115,7 +115,7 @@ class OkToolsUnfreeze
         $formData = [
         "st.posted" => "set",
         "st.country" => $this->ruCountry,
-        "st.phn" => ltrim($result['phone'], "7"),
+        "st.phn" => preg_replace("/^\+?7/", "", $result['phone']),
         "button_continue" => "Отправить код"
         ];
         $form = $this->getNextForm($this->okUrl . $form->action, $formData);
