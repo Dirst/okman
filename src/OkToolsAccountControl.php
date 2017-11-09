@@ -312,6 +312,14 @@ class OkToolsAccountControl extends OkToolsBaseControl
             );
         }
         
+        // Check if group limit.
+        if (strpos($result, "В эту группу рассылается слишком много приглашений") !== FALSE) {
+            throw new OkToolsInviteGroupLimitException(
+                "Group limit exceed.",
+                $result
+            );
+        }
+        
         // Check groups lits - success criteria.
         if (!$mobilePage->find("#groups-list", 0)) {
             throw new OkToolsInviteFailedException(
