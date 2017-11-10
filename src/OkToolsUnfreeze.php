@@ -96,13 +96,16 @@ class OkToolsUnfreeze
                 );
             }
 
-            // Get link to chose another phone.
-            if (!( ($choseAnotherPhone = $domHumanCheck->find('a.ai', 0)) || ($choseAnotherPhone = $domHumanCheck->find('a.acor', 0)) )) {
-                throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
+            // Check if asking to enter new number.
+            if (!($next = $domHumanCheck->find("a.base-button_target", 0))) {
+                // Get link to chose another phone if phone already exists.
+                if (!( ($next = $domHumanCheck->find('a.ai', 0)) || ($next = $domHumanCheck->find('a.acor', 0)) )) {
+                    throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
+                }
             }
 
             // Get page with form for new phone.
-            $request = $this->requester->requestGet($this->okUrl . $choseAnotherPhone->href);
+            $request = $this->requester->requestGet($this->okUrl . $next->href);
             $domHumanCheck = str_get_html($request);
             if (!($form = $domHumanCheck->find("form", 0))) {
                 throw new OkToolsDomItemNotFoundException("Couldn't get form to insert new phone.", $request);

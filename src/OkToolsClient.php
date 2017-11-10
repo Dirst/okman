@@ -160,6 +160,10 @@ class OkToolsClient
         // If all is ok - trying to get session key.
         if (isset($data['auth_login_response']) && isset($data['auth_login_response']['session_key'])) {
             $time = time();
+            if (!isset($data['time']))  {
+              $data['time'] = 0;
+            }
+            
             $data['time'] = ($data['time'] + $this->updateLoginTimeIntervalSeconds <= $time) ? $time : $data['time'];
             file_put_contents($credsFilePath, serialize($data));
             $this->loginResponseData = $data;

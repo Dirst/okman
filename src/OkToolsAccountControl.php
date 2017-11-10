@@ -12,6 +12,7 @@ use Dirst\OkTools\Exceptions\Invite\OkToolsInviteAcceptorNotFoundException;
 use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteTooOftenException;
+use Dirst\OkTools\Exceptions\OkToolsSettingChangeException;
 
 /**
  * ACcount control class.
@@ -327,5 +328,177 @@ class OkToolsAccountControl extends OkToolsBaseControl
                 $result
             );
         }
+    }
+
+    /**
+     * Change account language.
+     *
+     * @param type $langCode
+     * @throws OkToolsDomItemNotFoundException
+     * @throws OkToolsSettingChangeException
+     */
+    public function changeLanguage($langCode = "ru") {
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . "/api/goto",
+            [
+              "url" => "/settings?app.params=x",
+              "application_key" => $this->OkToolsClient->getAppKey(),
+              "uid" => $this->OkToolsClient->getAccountApiId(),
+              "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            ],
+            "get",
+            true
+        );
+
+        $mobilePage = str_get_html($result);
+        
+        // Search for change language link.
+        if (!($changeLink = $mobilePage->find('a[href*="st.cmd=langSelector"]', 0))) {
+            throw new OkToolsDomItemNotFoundException(
+                "Couldn't find change language link.",
+                $result
+            );
+        }
+        
+        // Change lang page.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $changeLink->href,
+            [],
+            "get",
+            true
+        );
+        $mobilePage = str_get_html($result);
+
+        // Search for needed language link.
+        if (!($langLink = $mobilePage->find('a[href*="st.lang=' . $langCode . '"]', 0))) {
+            throw new OkToolsDomItemNotFoundException(
+                "Couldn't find needed language button on langs list.",
+                $result
+            );
+        }
+        
+        // Click on language to set it.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $langLink->href,
+            [],
+            "get",
+            true
+        );
+
+        // Check if we on settings page again.
+        if (strpos($this->OkToolsClient->getRequestBehaviour()->getHeaders()['Location'], 'st.cmd=userSettings') === false) {
+            throw new OkToolsSettingChangeException(
+                "Couldn't change language.",
+                $result
+            );
+        }
+
+    }
+ 
+    
+    public function changeProfile(
+        $day = false,
+        $month = false,
+        $year = false,
+        $name = false,
+        $surname = false,
+        $gender = false // 1 - m, 2 - f
+    ) {
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . "/api/goto",
+            [
+              "url" => "/settings?app.params=x",
+              "application_key" => $this->OkToolsClient->getAppKey(),
+              "uid" => $this->OkToolsClient->getAccountApiId(),
+              "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            ],
+            "get",
+            true
+        );
+
+        $mobilePage = str_get_html($result);
+        
+        // Search for change personal link.
+        if (!($settingsPersonalLink = $mobilePage->find('a[href*="st.cmd=userSettingsPersonal"]', 0))) {
+            throw new OkToolsDomItemNotFoundException(
+                "Couldn't find change personal link.",
+                $result
+            );
+        }
+        
+        // Change personal page.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $settingsPersonalLink->href,
+            [],
+            "get",
+            true
+        );
+        
+        $mobilePage = str_get_html($result);
+        
+        // Search for change profile link.
+        if (!($settingsProfilelLink = $mobilePage->find('a[href*="st.cmd=userSettingsProfile"]', 0))) {
+            throw new OkToolsDomItemNotFoundException(
+                "Couldn't find change profile form link.",
+                $result
+            );
+        }
+
+        // Change profile form.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $settingsProfilelLink->href,
+            [],
+            "get",
+            true
+        );
+        
+        $mobilePage = str_get_html($result);
+        if ( !($mobilePage->find('form[action*="bk=UserSettingsProfile"]', 0)) ) {
+            throw new OkToolsDomItemNotFoundException(
+                "Couldn't find profile edit form.",
+                $result
+            );
+        }
+        
+        // Get gender
+        if (!$gender) {
+          foreach ($mobilePage->find("input[name*='fr.gender']") as $genderElement) {
+              if (isset($genderElement->checked)) {
+                $gender = $genderElement->value;
+                break;
+              }
+          }
+        }
+
+        $data = [
+          "fr.posted" => "set",
+          "fr.name" => $name ? $name : $mobilePage->find("input[name*='fr.name']", 0)->value,
+          "fr.surname" => $surname ? $surname : $mobilePage->find("input[name*='fr.surname']", 0)->value,
+          "fr.gender" => $gender,
+          "fr.birthday" => $day ? $day : $mobilePage->find("select[name*='fr.birthday']", 0)->find("option[selected='selected']", 0)->value,
+          "fr.bmonth" => $month ? $month : $mobilePage->find("select[name*='fr.bmonth']", 0)->find("option[selected='selected']", 0)->value,
+          "fr.byear" => $year ? $year : $mobilePage->find("select[name*='fr.byear']", 0)->find("option[selected='selected']", 0)->value,
+          "fr.country" => 10414533690,
+          "fr.city" => "Москва",
+          "fr.city" => "Москва",
+          "fr.cityId" => 10407994421,
+          "button_save" => "Сохранить"
+        ];
+        
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getMobileVersionUrl() . $mobilePage->find('form[action*="bk=UserSettingsProfile"]', 0)->action,
+            $data,
+            "post",
+            true
+        );
+
+        // Check if we on settings page again.
+        if (strpos($this->OkToolsClient->getRequestBehaviour()->getHeaders()['Location'], 'st.cmd=userSettingsPersonal') === false) {
+            throw new OkToolsSettingChangeException(
+                "Couldn't change profile.",
+                $result
+            );
+        }
+        
     }
 }
