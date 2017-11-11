@@ -13,6 +13,7 @@ use Dirst\OkTools\Exceptions\OkToolsDomItemNotFoundException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteTooOftenException;
 use Dirst\OkTools\Exceptions\OkToolsSettingChangeException;
+use Dirst\OkTools\Exceptions\Invite\OkToolsInviteGroupLimitException;
 
 /**
  * ACcount control class.
