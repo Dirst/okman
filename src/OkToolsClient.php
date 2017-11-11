@@ -457,8 +457,10 @@ class OkToolsClient
 
             // Check if captcha shows up.
             if ($mobilePage->find("#captcha", 0)) {
+                $mobilePage->clear();
                 throw new OkToolsCaptchaAppearsException("Captcha appears", $this->login, $result, $this->requestBehaviour);
             }
+            $mobilePage->clear();
         }
 
         return $browser ? $result : json_decode($result, true);
