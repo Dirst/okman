@@ -395,7 +395,18 @@ class OkToolsAccountControl extends OkToolsBaseControl
 
     }
  
-    
+    /**
+     * Change profile settings 
+     *
+     * @param type $day
+     * @param type $month
+     * @param type $year
+     * @param type $name
+     * @param type $surname
+     * @param type $gender
+     * @throws OkToolsDomItemNotFoundException
+     * @throws OkToolsSettingChangeException
+     */
     public function changeProfile(
         $day = false,
         $month = false,
@@ -472,8 +483,8 @@ class OkToolsAccountControl extends OkToolsBaseControl
 
         $data = [
           "fr.posted" => "set",
-          "fr.name" => $name ? $name : $mobilePage->find("input[name*='fr.name']", 0)->value,
-          "fr.surname" => $surname ? $surname : $mobilePage->find("input[name*='fr.surname']", 0)->value,
+          "fr.name" => $name ? $name : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.name']", 0)->value),
+          "fr.surname" => $surname ? $surname : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.surname']", 0)->value),
           "fr.gender" => $gender,
           "fr.birthday" => $day ? $day : $mobilePage->find("select[name*='fr.birthday']", 0)->find("option[selected='selected']", 0)->value,
           "fr.bmonth" => $month ? $month : $mobilePage->find("select[name*='fr.bmonth']", 0)->find("option[selected='selected']", 0)->value,
