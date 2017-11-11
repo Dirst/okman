@@ -481,10 +481,11 @@ class OkToolsAccountControl extends OkToolsBaseControl
           }
         }
 
+        $surname = $surname ? $surname : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.surname']", 0)->value);
         $data = [
           "fr.posted" => "set",
           "fr.name" => $name ? $name : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.name']", 0)->value),
-          "fr.surname" => $surname ? $surname : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.surname']", 0)->value),
+          "fr.surname" => trim($surname) == "" ? "-" : $surname,
           "fr.gender" => $gender,
           "fr.birthday" => $day ? $day : $mobilePage->find("select[name*='fr.birthday']", 0)->find("option[selected='selected']", 0)->value,
           "fr.bmonth" => $month ? $month : $mobilePage->find("select[name*='fr.bmonth']", 0)->find("option[selected='selected']", 0)->value,
