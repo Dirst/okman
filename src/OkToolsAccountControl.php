@@ -242,7 +242,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
      */
     public function inviteUserToGroup($userId, $groupId)
     {
-        // Form send.
+                // Form send.
         $form = [
           "application_key" => $this->OkToolsClient->getAppKey(),
           "fid" => $userId,
@@ -263,19 +263,22 @@ class OkToolsAccountControl extends OkToolsBaseControl
         
         // Get groups list.
         if (!($list = $mobilePage->find("#groups-list", 0))) {
+            $mobilePage->clear();
             throw new OkToolsInviteCantBeDoneException("User couldn't be invited or account is blocked.", $result);
         }
 
         // Check if already invited.
         if (!($groups = $list->find("li[id*=$groupId]", 0))) {
+            $mobilePage->clear();
             throw new OkToolsInviteAcceptorNotFoundException("Couldn't find acceptor group.", $result);
         }
 
         // Check if already invited.
         if ($groups->find('a[class*="group-select __disabled"]', 0)) {
+            $mobilePage->clear();
             throw new OkToolsInviteDoneBeforeException("User has been already invited before.", $result);
         }
-
+        
         // Sleep pause.
         sleep(rand(0, 3));
         
@@ -286,10 +289,13 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "get",
             true
         );
+        
+        $mobilePage->clear();
         $confirmInvitePage = str_get_html($confirmInvitePage);
 
         // Check if form exists.
         if (!$confirmInvitePage->find("form", 0)) {
+            $confirmInvitePage->clear();
             throw new OkToolsDomItemNotFoundException("Couldn't find invite html form", $confirmInvitePage);
         }
         
@@ -303,10 +309,12 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "post",
             true
         );
+        $confirmInvitePage->clear();
         $mobilePage = str_get_html($result);
         
         // Check if invite is not too often.
         if (strpos($result, "Вы слишком часто приглашаете людей в группы") !== FALSE) {
+            $mobilePage->clear();
             throw new OkToolsInviteTooOftenException(
                 "Invite is too often.",
                 $result
@@ -315,6 +323,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         
         // Check if group limit.
         if (strpos($result, "В эту группу рассылается слишком много приглашений") !== FALSE) {
+            $mobilePage->clear();
             throw new OkToolsInviteGroupLimitException(
                 "Group limit exceed.",
                 $result
@@ -323,11 +332,13 @@ class OkToolsAccountControl extends OkToolsBaseControl
         
         // Check groups lits - success criteria.
         if (!$mobilePage->find("#groups-list", 0)) {
+            $mobilePage->clear();
             throw new OkToolsInviteFailedException(
                 "Couldn't finalize invite. No groups-list fiund as it should.",
                 $result
             );
         }
+        $mobilePage->clear();
     }
 
     /**
@@ -354,6 +365,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         
         // Search for change language link.
         if (!($changeLink = $mobilePage->find('a[href*="st.cmd=langSelector"]', 0))) {
+            $mobilePage->clear();
             throw new OkToolsDomItemNotFoundException(
                 "Couldn't find change language link.",
                 $result
@@ -367,10 +379,13 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "get",
             true
         );
+        
+        $mobilePage->clear();
         $mobilePage = str_get_html($result);
 
         // Search for needed language link.
         if (!($langLink = $mobilePage->find('a[href*="st.lang=' . $langCode . '"]', 0))) {
+            $mobilePage->clear();
             throw new OkToolsDomItemNotFoundException(
                 "Couldn't find needed language button on langs list.",
                 $result
@@ -384,6 +399,8 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "get",
             true
         );
+        
+        $mobilePage->clear();
 
         // Check if we on settings page again.
         if (strpos($this->OkToolsClient->getRequestBehaviour()->getHeaders()['Location'], 'st.cmd=userSettings') === false) {
@@ -431,6 +448,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         
         // Search for change personal link.
         if (!($settingsPersonalLink = $mobilePage->find('a[href*="st.cmd=userSettingsPersonal"]', 0))) {
+            $mobilePage->clear();
             throw new OkToolsDomItemNotFoundException(
                 "Couldn't find change personal link.",
                 $result
@@ -445,10 +463,12 @@ class OkToolsAccountControl extends OkToolsBaseControl
             true
         );
         
+        $mobilePage->clear();
         $mobilePage = str_get_html($result);
         
         // Search for change profile link.
         if (!($settingsProfilelLink = $mobilePage->find('a[href*="st.cmd=userSettingsProfile"]', 0))) {
+            $mobilePage->clear();
             throw new OkToolsDomItemNotFoundException(
                 "Couldn't find change profile form link.",
                 $result
@@ -463,8 +483,10 @@ class OkToolsAccountControl extends OkToolsBaseControl
             true
         );
         
+        $mobilePage->clear();
         $mobilePage = str_get_html($result);
         if ( !($mobilePage->find('form[action*="bk=UserSettingsProfile"]', 0)) ) {
+            $mobilePage->clear();
             throw new OkToolsDomItemNotFoundException(
                 "Couldn't find profile edit form.",
                 $result
@@ -503,9 +525,12 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "post",
             true
         );
+        
+        $mobilePage->clear();
 
         // Check if we on settings page again.
         if (strpos($this->OkToolsClient->getRequestBehaviour()->getHeaders()['Location'], 'st.cmd=userSettingsPersonal') === false) {
+            $mobilePage->clear();
             throw new OkToolsSettingChangeException(
                 "Couldn't change profile.",
                 $result

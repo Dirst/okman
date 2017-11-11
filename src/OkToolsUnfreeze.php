@@ -39,6 +39,9 @@ class OkToolsUnfreeze
     const SMSACTIVATE = 0;
     const GETSMS = 1;
     
+    // @var smple_html_dom object.
+    protected $innerDom;
+    
     /**
      * Construct Unfreeze object.
      *
@@ -76,6 +79,7 @@ class OkToolsUnfreeze
 
         // Check if try later.
         if ($domHumanCheck->find("div[data-logloc='uvTryLater']", 0)) {
+            $domHumanCheck->clear();
             throw new OkToolsUnfreezeException("Couldn't unfreeze. Sms limit. Will try later.", "");
         }
         
@@ -100,6 +104,7 @@ class OkToolsUnfreeze
             if (!($next = $domHumanCheck->find("a.base-button_target", 0))) {
                 // Get link to chose another phone if phone already exists.
                 if (!( ($next = $domHumanCheck->find('a.ai', 0)) || ($next = $domHumanCheck->find('a.acor', 0)) )) {
+                    $domHumanCheck->clear();
                     throw new OkToolsDomItemNotFoundException("Couldn't get link to chose new number.", $request);
                 }
             }
@@ -108,6 +113,7 @@ class OkToolsUnfreeze
             $request = $this->requester->requestGet($this->okUrl . $next->href);
             $domHumanCheck = str_get_html($request);
             if (!($form = $domHumanCheck->find("form", 0))) {
+                $domHumanCheck->clear();
                 throw new OkToolsDomItemNotFoundException("Couldn't get form to insert new phone.", $request);
             }
         }
@@ -122,7 +128,8 @@ class OkToolsUnfreeze
         "button_continue" => "Отправить код"
         ];
         $form = $this->getNextForm($this->okUrl . $form->action, $formData);
-
+        $domHumanCheck->clear();
+        
         // Get phone Code.
         $code = $this->getPhoneCode($result['id'], $waitInterval);
       
@@ -132,6 +139,7 @@ class OkToolsUnfreeze
           "st.smsCode" => $code,
           "button_continue" => "Подтвердить код"
         ];
+        
         $form = $this->getNextForm($this->okUrl . $form->action, $formData);
         
         // Change password if required.
@@ -148,6 +156,9 @@ class OkToolsUnfreeze
             $form = $this->requester->requestPost($this->okUrl . $form->action, $formData);
         }
 
+        //Clear memory.
+        $this->innerDom->clear();
+        
         // Check success status.
         if (strpos($this->requester->getHeaders()['Location'], 'st.verificationResult=ok') !== false) {
             $this->activator->setComplete($result['id']);
@@ -245,9 +256,15 @@ class OkToolsUnfreeze
     {
         // Get phone code enter page.
         $request = $this->makeRequest($url, $formData, "post");
-        $domHumanCheck = str_get_html($request);
+        
+        if ($this->innerDom) {
+          $this->innerDom->clear();
+        }
+
+        $this->innerDom = str_get_html($request);
       
-        if (!($form = $domHumanCheck->find("form", 0))) {
+        if (!($form = $this->innerDom->find("form", 0))) {
+            $this->innerDom->clear();
             throw new OkToolsDomItemNotFoundException("Couldn't retrieve next form page.", $request);
         } else {
             return $form;
@@ -281,10 +298,12 @@ class OkToolsUnfreeze
         $mobilePage = str_get_html($result);
         
         // Check if captcha shows up.
-        if ($mobilePage->find("#captcha", 0)) {          
+        if ($mobilePage->find("#captcha", 0)) {
+            $mobilePage->clear();
             throw new OkToolsCaptchaAppearsException("Captcha on request", null, $result, $this->requester);
         }
   
+        $mobilePage->clear();
         return $result;
     }
 }
