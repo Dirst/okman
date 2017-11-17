@@ -68,7 +68,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
    
         // Check subscription.
         if (isset($groupInfo['group_getUserGroupsByIds_response']) && isset($groupInfo['group_getUserGroupsByIds_response'][0])) {
-            if (!in_array($groupInfo['group_getUserGroupsByIds_response'][0]['status'], ["ACTIVE", "MODERATOR", "ADMIN"]) ) {
+            if (in_array($groupInfo['group_getUserGroupsByIds_response'][0]['status'], ["ACTIVE", "MODERATOR", "ADMIN"]) ) {
                 $this->isJoined = true;
             }
         }
