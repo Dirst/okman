@@ -28,6 +28,9 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     
     // @var string group id converted to api format.
     private $groupId;
+    
+    // @var boolean is joined to group.
+    private $isJoined;
 
     /**
      * Init Group control object.
@@ -60,6 +63,21 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             $form,
             "post"
         );
+        
+        // Check subscription.
+        if (
+            isset($groupInfo['group_getUserGroupsByIds_response']) && 
+            isset($groupInfo['group_getUserGroupsByIds_response'][0])
+        ) {
+            if ( !in_array($groupInfo['group_getUserGroupsByIds_response'][0]['status'], ["ACTIVE", "MODERATOR", "ADMIN"]) ) {
+                $this->isJoined = true;
+            } else {
+                $this->isJoined = false;
+            }
+        }
+        else {
+            throw new OkToolsGroupLoadException("Couldn't load users group info.", var_export($groupInfo, true));
+        }
 
         // Check if group has been retrieved.
         if (isset($groupInfo['group_getInfo_response']) && isset($groupInfo['group_getInfo_response'][0])) {
@@ -125,7 +143,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     public function joinTheGroup()
     {
         // Join the group if not already.
-        if ($this->groupInfo['feed_subscription'] == false) {
+        if ($this->isJoined == false) {
           // Send join request.
             $form = [
             "application_key" => $this->OkToolsClient->getAppKey(),
@@ -146,7 +164,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
                     var_export($this->groupInfo + $groupJoined, true)
                 );
             } else {
-                $this->groupInfo['feed_subscription'] = true;
+                $this->isJoined = true;
             }
         }
     }
@@ -269,8 +287,8 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   Joined/not joined flag.
      */
     public function isJoinedToGroup()
-    {
-        return $this->groupInfo['feed_subscription'];
+    {        
+        return $this->isJoined;
     }
 
     /**

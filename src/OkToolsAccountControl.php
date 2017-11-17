@@ -505,6 +505,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         }
 
         $surname = $surname ? $surname : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.surname']", 0)->value);
+        $surname = preg_replace("/(.+)[-\s].+/", "$1", $surname);
         $data = [
           "fr.posted" => "set",
           "fr.name" => $name ? $name : preg_replace("/[^a-zA-ZА-Яа-я0-9\s]/", "", $mobilePage->find("input[name*='fr.name']", 0)->value),

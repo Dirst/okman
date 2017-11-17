@@ -115,7 +115,7 @@ class RequestCurl implements RequestInterface
             return $result;
         } else {
             throw new OkToolsResponseException(
-                "Response has been failed",
+                "Response has been failed: " . curl_error($this->curlResource),
                 $this->getHeaders(),
                 $this->getResponseCode(),
                 $result
