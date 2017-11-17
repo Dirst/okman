@@ -64,19 +64,13 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             "post"
         );
         
+         $this->isJoined = false;
+   
         // Check subscription.
-        if (
-            isset($groupInfo['group_getUserGroupsByIds_response']) && 
-            isset($groupInfo['group_getUserGroupsByIds_response'][0])
-        ) {
-            if ( !in_array($groupInfo['group_getUserGroupsByIds_response'][0]['status'], ["ACTIVE", "MODERATOR", "ADMIN"]) ) {
+        if (isset($groupInfo['group_getUserGroupsByIds_response']) && isset($groupInfo['group_getUserGroupsByIds_response'][0])) {
+            if (!in_array($groupInfo['group_getUserGroupsByIds_response'][0]['status'], ["ACTIVE", "MODERATOR", "ADMIN"]) ) {
                 $this->isJoined = true;
-            } else {
-                $this->isJoined = false;
             }
-        }
-        else {
-            throw new OkToolsGroupLoadException("Couldn't load users group info.", var_export($groupInfo, true));
         }
 
         // Check if group has been retrieved.
