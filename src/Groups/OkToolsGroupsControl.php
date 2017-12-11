@@ -88,6 +88,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   Page anchor string to request members.
      * @param string $direction
      *   Direction to get users.
+     * @param string $statuses
      *
      * @throws OkToolsGroupMembersLoadException
      *   On members load exception.
@@ -95,7 +96,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      * @return array
      *   Array of users
      */
-    public function getMembers($pageAnchor = null, $direction = "FORWARD", $count = 30)
+    public function getMembers($pageAnchor = null, $direction = "FORWARD", $count = 30, $statuses = null)
     {
         $form = [
           "application_key" => $this->OkToolsClient->getAppKey(),
@@ -105,6 +106,11 @@ class OkToolsGroupsControl extends OkToolsBaseControl
           "gid" => $this->groupId,
           "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
         ];
+        
+        // Get user by group status.
+        if ($statuses) {
+          $form['statuses'] = $statuses;
+        }
 
         // Page anchor.
         if ($pageAnchor) {
@@ -159,6 +165,38 @@ class OkToolsGroupsControl extends OkToolsBaseControl
                 );
             } else {
                 $this->isJoined = true;
+            }
+        }
+    }
+
+    /**
+     * Leave the group.
+     *
+     * @throws OkToolsGroupJoinException
+     *   If couldn't leave the group.
+     */
+    public function leaveTheGroup()
+    {
+        if ($this->isJoined == true) {
+            // Send join request.
+            $form = [
+             "application_key" => $this->OkToolsClient->getAppKey(),
+             "group_id" => $this->groupId,
+             "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key']
+            ];
+            $groupLeft = $this->OkToolsClient->makeRequest(
+                $this->OkToolsClient->getApiEndpoint() . "/group/leave",
+                $form
+            );
+    
+            // Check on success.
+            if (!@$groupLeft['success']) {
+                throw new OkToolsGroupJoinException(
+                    "Couldn't leave the group. ",
+                    var_export($this->groupInfo + $groupLeft, true)
+                );
+            } else {
+                $this->isJoined = false;
             }
         }
     }
@@ -316,6 +354,36 @@ class OkToolsGroupsControl extends OkToolsBaseControl
       // Check success status.
         if (!(isset($result['success']) && $result['success'])) {
             throw new OkToolsGroupRoleAssignException("Couldn't assign role to user", var_export($result, true));
+        }
+    }
+
+    /**
+     * Revoke moderator status from the user in the current group.
+     *
+     * @param int $userId
+     *   User id to remove role from.
+     *
+     * @throws OkToolsGroupRoleAssignException
+     *   If no success on status revoke.
+     */
+    public function revokeModeratorStatus($userId)
+    {
+        $form = [
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "gid" => $this->groupId,
+          'session_key' => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+          "uid" => $userId
+        ];
+
+      // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/group/revokeModeratorStatus",
+            $form
+        );
+
+      // Check success status.
+        if (!(isset($result['success']) && $result['success'])) {
+            throw new OkToolsGroupRoleAssignException("Couldn't revoke moderator status", var_export($result, true));
         }
     }
 
