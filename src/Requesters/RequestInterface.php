@@ -24,7 +24,7 @@ interface RequestInterface
      * @return mixed
      *   Html response string or false on failure.
      */
-    public function requestGet($url, array $getParameters = null);
+    public function requestGet($url, array $getParameters = []);
 
     /**
      * Send post request.
