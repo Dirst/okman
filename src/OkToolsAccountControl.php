@@ -2,6 +2,8 @@
 
 namespace Dirst\OkTools;
 
+use Dirst\OkTools\OkToolsPhotoUploader;
+
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesDoneBeforeException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesException;
 use Dirst\OkTools\Exceptions\Likes\OkToolsLikesNotPermittedException;
@@ -539,5 +541,52 @@ class OkToolsAccountControl extends OkToolsBaseControl
             );
         }
         
+    }
+
+    /**
+     * Upload photo by url.
+     *
+     * @param string $imagePath
+     *   Path to image to upload.
+     *
+     * @return boolean
+     *   Status if avatar has been setted.
+     */
+    public function setUpAvatar($imagePath) {
+      $photoUploader = new OkToolsPhotoUploader($this->OkToolsClient);
+      $uploadData = $photoUploader->getPhotoUploadData();
+      $photosData = $photoUploader->uploadPhotoViaRetrievedUrl($uploadData['upload_url'], $imagePath);
+      $id = $photoUploader->getAssignedPhotoId(current($uploadData['photo_ids']), current($photosData)['token']);
+      return $this->setAvatarByPhotoId($id);
+    }
+
+    /**
+     * 
+     * @param type $photoId
+     * @return boolean
+     * @throws OkToolsGroupGetPhotosUploadDataException
+     */
+    public function setAvatarByPhotoId($photoId) {
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "photo_id" => $photoId,
+        ];
+        
+        // Send request.$this->OkToolsClient->getAppKey()
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/users/setMainPhoto",
+            $form,
+            "get"
+        );
+ 
+        if ($result === true) {
+            return true;
+        } else {
+            throw new OkToolsAccountAvatarSetUpException(
+              "Couldn't set avatar by photo id",
+              var_export($result, true)
+            );
+        }
     }
 }
