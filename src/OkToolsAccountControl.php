@@ -17,6 +17,7 @@ use Dirst\OkTools\Exceptions\Invite\OkToolsInviteTooOftenException;
 use Dirst\OkTools\Exceptions\OkToolsSettingChangeException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteGroupLimitException;
 use Dirst\OkTools\Exceptions\OkToolsAccountGroupsRetrieveException;
+use Dirst\OkTools\Exceptions\OkToolsAccountGetInfoException;
 
 /**
  * ACcount control class.
@@ -642,6 +643,125 @@ class OkToolsAccountControl extends OkToolsBaseControl
         } else {
             throw new OkToolsAccountGroupsRetrieveException(
               "Couldn't retrieve groups by passed categories",
+              var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * Get User info.
+     */
+    public function getCurrentUserInfo() {
+        $methods = [];
+        $methods[] = [
+            'method' => 'users.getInfoBy',
+            'params' => [
+              'fields' => 'last_name,first_name,name,online,pic_base,pic190x190,last_online_ms,birthday,can_vmail,gender,pic190x190,premium,online,last_online_ms,show_lock,vip,current_status_track_id,current_status_date_ms,current_status,current_status_id,status,photo_id,age,has_service_invisible,private,pic_full,location,location_of_birth,invited_by_friend,relationship.*,relationship',
+              'uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+            ]
+        ];
+        $methods[] = [
+            'method' => 'users.getCounters',
+            'params' => [           
+                'counterTypes' => 'PHOTOS_PERSONAL,PHOTOS_IN_ALBUMS,PHOTO_PINS,PHOTO_ALBUMS,FRIENDS,GROUPS,STATUSES,APPLICATIONS,HAPPENINGS,HOLIDAYS,FRIENDS_ONLINE,SUBSCRIBERS',
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+            ],
+            'onError' => 'SKIP',
+          ];
+        $methods[] = [
+            'method' => 'users.getRelationInfo',
+            'params' => [              
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => '*',
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'presents.getActive',
+            'params' => [
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => 'present_type.*,present_type.has_surprise,present.*',
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'friends.getMutualFriendsV2',
+            'params' => [
+                'count' => '99',
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => 'last_name,first_name,name,birthday,premium,gender,show_lock,pic190x190,vip',
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'photos.getPhotoInfo',
+            'params' => [
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => 'photo.picmp4',
+                'photo_id' => ['supplier' => 'users.getInfoBy.photo_id'],
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'users.getAccessLevels',
+            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'users.getHolidays',
+            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'interests.getV2',
+            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'communities.getList',
+            'params' => [
+                'count' => '4',
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => 'name,country,abbreviation,uid,city,graduate_year,category,year_to,year_from',
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'photos.getPhotos',
+            'params' => [
+                'count' => '10',
+                'detectTotalCount' => 'true',
+                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fields' => 'photo.*',
+            ],
+            'onError' => 'SKIP',
+        ];
+        $methods[] = [
+            'method' => 'vchatPromotion.get',
+            'params' => new \stdClass(),
+            'onError' => 'SKIP',
+        ];
+        
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "format" => "json",
+            "id" => "users.getRelationInfo",
+            "methods" => json_encode($methods)
+        ];
+
+        // Make request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/batch/execute",
+            $form,
+            "post"
+        );
+
+        if (isset($result['users_getInfoBy_response'])) {
+            return $result;
+        } else {
+            throw new OkToolsAccountGetInfoException(
+              "Couldn't retrieve current user info",
               var_export($result, true)
             );
         }
