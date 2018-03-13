@@ -16,6 +16,7 @@ use Dirst\OkTools\Exceptions\Invite\OkToolsInviteFailedException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteTooOftenException;
 use Dirst\OkTools\Exceptions\OkToolsSettingChangeException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteGroupLimitException;
+use Dirst\OkTools\Exceptions\OkToolsAccountGroupsRetrieveException;
 
 /**
  * ACcount control class.
@@ -573,7 +574,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "photo_id" => $photoId,
         ];
         
-        // Send request.$this->OkToolsClient->getAppKey()
+        // Send request.
         $result = $this->OkToolsClient->makeRequest(
             $this->OkToolsClient->getApiEndpoint() . "/users/setMainPhoto",
             $form,
@@ -585,6 +586,62 @@ class OkToolsAccountControl extends OkToolsBaseControl
         } else {
             throw new OkToolsAccountAvatarSetUpException(
               "Couldn't set avatar by photo id",
+              var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * 
+     * @param array $categories
+     *   Possible categories popularTop,family,
+     * @param type $anchor
+     * @return type
+     * @throws OkToolsAccountGroupsRetrieveException
+     */
+    public function getGroupsList(array $categories = [], $anchor = null) {
+      $fields = [];
+      $fields = [
+          "group.*",
+          "group_photo.pic128x128",
+          "group_photo.pic240min",
+          "group_photo.pic320min",
+          "group_photo.pic640x480",
+          "user.*"
+      ];
+      
+      $form = [
+          "application_key" => $this->OkToolsClient->getAppKey(),
+          "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+          "count" => 8,
+          "direction" => "FORWARD",
+          "fields" => implode(",", $fields),
+          "friend_members_limit" => 5,
+          "load_members_counters" => true,
+          "load_own_group" => true,
+          "tags_limit" => 0
+      ];
+      
+      if (!empty($categories)) {
+        $form['category_ids'] = implode(",", $categories);
+      }
+      
+      if ($anchor) {
+        $form['anchor'] = $anchor;
+      }
+
+      // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/group/getCategoriesGroups",
+            $form,
+            "get"
+        );
+
+        if (isset($result['categories']) && isset($result['categories'][0]) && isset($result['categories'][0]['groups'])) {
+            return $result['categories'][0];
+        } else {
+            throw new OkToolsAccountGroupsRetrieveException(
+              "Couldn't retrieve groups by passed categories",
               var_export($result, true)
             );
         }
