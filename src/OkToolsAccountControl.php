@@ -18,6 +18,8 @@ use Dirst\OkTools\Exceptions\OkToolsSettingChangeException;
 use Dirst\OkTools\Exceptions\Invite\OkToolsInviteGroupLimitException;
 use Dirst\OkTools\Exceptions\OkToolsAccountGroupsRetrieveException;
 use Dirst\OkTools\Exceptions\OkToolsAccountGetInfoException;
+use Dirst\OkTools\Exceptions\OkToolsAccountPostOnWallException;
+use Dirst\OkTools\Exceptions\OkToolsAccountNotificationsException;
 
 /**
  * ACcount control class.
@@ -69,8 +71,8 @@ class OkToolsAccountControl extends OkToolsBaseControl
     /**
      * Like one photo retireved with getUserPhotos.
      *
-     * @param array $photoArray
-     *   Photo array getted from getUserPhotos method.
+     * @param array $likeSummary
+     *   Like summary getted.
      *
      * @throws OkToolsLikesNotPermittedException
      *   Like is not permitted for this photo.
@@ -79,24 +81,24 @@ class OkToolsAccountControl extends OkToolsBaseControl
      * @throws OkToolsLikesException
      *   When like has not been performed.
      */
-    public function likeUserPhoto($photoArray)
+    public function likeEntity(array $likeSummary)
     {
       // Check if like is possible
-        if (!$photoArray['like_summary']['like_possible']) {
+        if (!$likeSummary['like_summary']['like_possible']) {
             throw new OkToolsLikesNotPermittedException(
                 "Not possible to like this photo",
-                var_export($photoArray, true)
+                var_export($likeSummary, true)
             );
         }
 
       // Check if photo has not been liked before.
-        if ($photoArray['like_summary']['self']) {
-            throw new OkToolsLikesDoneBeforeException("Like has been done before.", var_export($photoArray, true));
+        if ($likeSummary['like_summary']['self']) {
+            throw new OkToolsLikesDoneBeforeException("Like has been done before.", var_export($likeSummary, true));
         }
       
         $form = [
           "application_key" => $this->OkToolsClient->getAppKey(),
-          "like_id" => $photoArray['like_summary']['like_id'],
+          "like_id" => $likeSummary['like_summary']['like_id'],
           "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
         ];
         $result = $this->OkToolsClient->makeRequest(
@@ -107,6 +109,132 @@ class OkToolsAccountControl extends OkToolsBaseControl
       // Check if like has been done.
         if (!(isset($result['summary']) && $result['summary']['self'])) {
             throw new OkToolsLikesException("Photo has not been liked", var_export($result, true));
+        }
+    }
+
+    /**
+     * Post on the wall.
+     *
+     * @param array $mediaData
+     *   Array of medias to post. Example.
+     *   [
+     *      ["type" => "text", "text" => "SOME TEXT OR LINK"],
+     *      [
+     *        "type" => "photo",
+     *        "list" => [
+     *          ["photoId" => "UPLOADED_PHOTO_ID", group => false],
+     *          ...
+     *        ]
+     *      ],
+     *      [
+     *        "type" => "topic",
+     *        "intermediary_id" => TOPICID,
+     *        "group" => false, // From group wall.
+     *        "topicId" => TOPICID
+     *      ],
+     *      [
+     *        "type" => "movie-reshare", // video
+     *        "movieId" => MOVIEID
+     *      ],
+     *      
+     *   ]
+     * @param array $mediaData
+     * @param type $linkPreview
+     * @return type
+     * @throws OkToolsGroupPostTopicException
+     */
+    public function postOnWall(array $mediaData, $linkPreview = false) {
+        $attachments['media'] = $mediaData;
+        
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "type" => "USER_NOTE",
+            "text_link_preview" => $linkPreview,
+            "attachment" => json_encode($attachments)
+        ];
+
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/mediatopic/post",
+            $form,
+            "post"
+        );
+
+        // Check if post id has been returned.
+        if (is_numeric($result)) {
+            return $result;
+        } else {
+            throw new OkToolsAccountPostOnWallException(
+                "Post on wall problem.",
+                var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * Possible categories:
+     *   All,Friendships,Presents,Groups,Games,Payments,Video,Other
+     * @param type $category
+     */
+    public function getNotifications($category = "All", $anchor = null) {
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "action" => "RESET_COUNTERS",
+            "counters" => true,
+            "etagSupported" => true,
+            "category" => $category
+        ];
+
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/notificationsV2/get",
+            $form
+        );
+
+        // Check response for correct format.
+        if (isset($result['categories'])) {
+            return $result;
+        } else {
+            throw new OkToolsAccountNotificationsException(
+                "Get notifications problem.",
+                var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * 
+     * @param type $notificationId
+     * @param type $action
+     *   Possible LINK
+     * @return type
+     * @throws OkToolsAccountNotificationsException
+     */
+    public function doNotificationAction($notificationId, $action = "CLOSE") {
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "action" => $action,
+            "notif_id" => $notificationId,
+            "log_context" => "ntf-cat-All"
+        ];
+
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/notificationsV2/doAction",
+            $form
+        );
+
+        // Check for correct response format.
+        if (isset($result['remove'])) {
+            return $result['remove'];
+        } else {
+            throw new OkToolsAccountNotificationsException(
+                "Action on $notificationId notification problem.",
+                var_export($result, true)
+            );
         }
     }
 
@@ -582,6 +710,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "get"
         );
  
+        // Check for success.
         if ($result === true) {
             return true;
         } else {
@@ -593,9 +722,12 @@ class OkToolsAccountControl extends OkToolsBaseControl
     }
 
     /**
-     * 
+     * Get common groups list via categories.
+     *
      * @param array $categories
-     *   Possible categories popularTop,family,
+     *   Possible categories popularTop,family,official,new,massmedia,automoto,blogs,design,
+     *    animals,cookery,games,cinema,fashion,sport,travel,education,computer,music,entertainment,
+     *    hobby,art,charity,science,philosophy
      * @param type $anchor
      * @return type
      * @throws OkToolsAccountGroupsRetrieveException
@@ -638,6 +770,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
             "get"
         );
 
+        // Check if response is correct.
         if (isset($result['categories']) && isset($result['categories'][0]) && isset($result['categories'][0]['groups'])) {
             return $result['categories'][0];
         } else {
@@ -649,29 +782,34 @@ class OkToolsAccountControl extends OkToolsBaseControl
     }
 
     /**
-     * Get User info.
+     * Get common user info. When main page is opened this data will be retrieved.
+     *
+     * @param type $userId
+     * @return type
+     * @throws OkToolsAccountGetInfoException
      */
-    public function getCurrentUserInfo() {
+    public function getUserInfo($userId = null) {
+        $userId = $userId ? $userId : $this->OkToolsClient->getLoginData()['auth_login_response']['uid'];
         $methods = [];
         $methods[] = [
             'method' => 'users.getInfoBy',
             'params' => [
               'fields' => 'last_name,first_name,name,online,pic_base,pic190x190,last_online_ms,birthday,can_vmail,gender,pic190x190,premium,online,last_online_ms,show_lock,vip,current_status_track_id,current_status_date_ms,current_status,current_status_id,status,photo_id,age,has_service_invisible,private,pic_full,location,location_of_birth,invited_by_friend,relationship.*,relationship',
-              'uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+              'uid' => $userId,
             ]
         ];
         $methods[] = [
             'method' => 'users.getCounters',
             'params' => [           
                 'counterTypes' => 'PHOTOS_PERSONAL,PHOTOS_IN_ALBUMS,PHOTO_PINS,PHOTO_ALBUMS,FRIENDS,GROUPS,STATUSES,APPLICATIONS,HAPPENINGS,HOLIDAYS,FRIENDS_ONLINE,SUBSCRIBERS',
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
             ],
             'onError' => 'SKIP',
           ];
         $methods[] = [
             'method' => 'users.getRelationInfo',
             'params' => [              
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => '*',
             ],
             'onError' => 'SKIP',
@@ -679,7 +817,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         $methods[] = [
             'method' => 'presents.getActive',
             'params' => [
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => 'present_type.*,present_type.has_surprise,present.*',
             ],
             'onError' => 'SKIP',
@@ -688,7 +826,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
             'method' => 'friends.getMutualFriendsV2',
             'params' => [
                 'count' => '99',
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => 'last_name,first_name,name,birthday,premium,gender,show_lock,pic190x190,vip',
             ],
             'onError' => 'SKIP',
@@ -696,7 +834,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
         $methods[] = [
             'method' => 'photos.getPhotoInfo',
             'params' => [
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => 'photo.picmp4',
                 'photo_id' => ['supplier' => 'users.getInfoBy.photo_id'],
             ],
@@ -704,24 +842,24 @@ class OkToolsAccountControl extends OkToolsBaseControl
         ];
         $methods[] = [
             'method' => 'users.getAccessLevels',
-            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'params' => ['uid' => $userId],
             'onError' => 'SKIP',
         ];
         $methods[] = [
             'method' => 'users.getHolidays',
-            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'params' => ['uid' => $userId],
             'onError' => 'SKIP',
         ];
         $methods[] = [
             'method' => 'interests.getV2',
-            'params' => ['uid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid']],
+            'params' => ['uid' => $userId],
             'onError' => 'SKIP',
         ];
         $methods[] = [
             'method' => 'communities.getList',
             'params' => [
                 'count' => '4',
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => 'name,country,abbreviation,uid,city,graduate_year,category,year_to,year_from',
             ],
             'onError' => 'SKIP',
@@ -731,7 +869,7 @@ class OkToolsAccountControl extends OkToolsBaseControl
             'params' => [
                 'count' => '10',
                 'detectTotalCount' => 'true',
-                'fid' => $this->OkToolsClient->getLoginData()['auth_login_response']['uid'],
+                'fid' => $userId,
                 'fields' => 'photo.*',
             ],
             'onError' => 'SKIP',
@@ -761,7 +899,68 @@ class OkToolsAccountControl extends OkToolsBaseControl
             return $result;
         } else {
             throw new OkToolsAccountGetInfoException(
-              "Couldn't retrieve current user info",
+              "Couldn't retrieve user info",
+              var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * Get user Wall data.
+     *
+     * @param type $userId
+     * @param type $anchor
+     * @return type
+     * @throws OkToolsAccountGetInfoException
+     */
+    public function getUserWall($userId = null, $anchor = null) {
+        // Get user wall first stream.
+        $methods = [];
+        $methods[] = [
+            "stream.get" => [
+                "params" => [
+                    "app_suffix" => "android.1",
+                    "client" => $this->OkToolsClient->getAndroidClient(),
+                    "count" => 20,
+                    "direction" => "FORWARD",
+                    "features" => "PRODUCT.1",
+                    "fieldset" => "android.46",
+                    "patternset" => "android.18",
+                    "uid" => $userId ? $userId : $this->OkToolsClient->getLoginData()['auth_login_response']['uid'] 
+                ]
+            ]
+        ];
+
+        // Additional parameters.
+        if ($anchor) {
+          $methods[0]['stream.get']['params']['mark_as_read'] = false;
+          $methods[0]['stream.get']['params']['anchor'] = $anchor;
+        } else {
+          $methods[0]['stream.get']['params']['mark_as_read'] = true;
+          $methods[0]['stream.get']['params']['reason'] = "FIRST_START"; 
+        }
+
+        // Stream id assign.
+        $id = $anchor ? "stream.get-first" : "stream.get-more";
+
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "id" => $id,
+            "methods" => json_encode($methods)
+        ];
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/batch/executeV2",
+            $form,
+            "post"
+        );
+
+        // Check wall data exists.
+        if (isset($result[0]) && isset($result[0]['ok']) && isset($result[0]['ok']['feeds'])) {
+            return $result[0]['ok'];
+        } else {
+            throw new OkToolsAccountGetInfoException(
+              "Couldn't retrieve user wall info",
               var_export($result, true)
             );
         }

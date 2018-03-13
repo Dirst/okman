@@ -562,7 +562,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
             "application_key" => $this->OkToolsClient->getAppKey(),
             "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
             "gid" => $this->groupId,
-            "tet_link_preview" => $previewLink,
+            "text_link_preview" => $previewLink,
             "type" => $type,
             "attachment" => json_encode($attachments)
         ];
