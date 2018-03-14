@@ -53,9 +53,10 @@ class OkToolsRegister
      * @param string $type
      *   Activate type.
      */
-    public function __construct($activatorKey, $proxy = null, $type = self::SMSACTIVATE)
+    public function __construct($activatorKey, $proxy = null, $userAgent = null, $type = self::SMSACTIVATE)
     {
         $client= new Client();
+        $this->userAgent = $userAgent ? $userAgent : $this->userAgent;
         $activator = $type == self::SMSACTIVATE ? new smsActivate($activatorKey) : new getSms($activatorKey);
         $this->activator = new SmsActivator($activator, $client);
         $this->requester = new RequestCurl($proxy, $this->userAgent);
