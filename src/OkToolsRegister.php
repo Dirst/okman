@@ -43,6 +43,8 @@ class OkToolsRegister
     // @var smple_html_dom object.
     protected $innerDom;
     
+    protected $androidAgent = false;
+    
     /**
      * Construct Unfreeze object.
      *
@@ -56,6 +58,9 @@ class OkToolsRegister
     public function __construct($activatorKey, $proxy = null, $userAgent = null, $type = self::SMSACTIVATE)
     {
         $client= new Client();
+        if (strpos($userAgent, 'Android') !== FALSE) {
+          $this->androidAgent = true;
+        }
         $this->userAgent = $userAgent ? $userAgent : $this->userAgent;
         $activator = $type == self::SMSACTIVATE ? new smsActivate($activatorKey) : new getSms($activatorKey);
         $this->activator = new SmsActivator($activator, $client);
@@ -90,7 +95,10 @@ class OkToolsRegister
       $domHumanCheck = str_get_html($request);
 
       // Register page.
-      $register = $domHumanCheck->find("div[class='base-button __modern __full-width'] a", 0)->href;
+      $class = $this->androidAgent ? "base-button __android __modern __full-width" : "base-button __modern __full-width";
+      $register = $domHumanCheck->find(
+          "div[class='$class'] a", 0
+      )->href;
       $request = $this->makeRequest($this->okUrl . $register);
       $domHumanCheck = str_get_html($request);
 
@@ -152,7 +160,8 @@ class OkToolsRegister
       $this->innerDom->clear();
 
       // Check success status.
-      if (strpos($this->requester->getHeaders()['Location'], 'st.cmd=newRegUploadPhoto') !== false) {
+      $location = $this->androidAgent ? 'apphook/login?login' : 'st.cmd=newRegUploadPhoto';
+      if (strpos($this->requester->getHeaders()['Location'], $location) !== false) {
           $this->activator->setComplete($result['id']);
           return ["phone" => $result['phone'], 'password' => $password];
       } else {
