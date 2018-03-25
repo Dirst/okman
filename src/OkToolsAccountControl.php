@@ -84,21 +84,21 @@ class OkToolsAccountControl extends OkToolsBaseControl
     public function likeEntity(array $likeSummary)
     {
       // Check if like is possible
-        if (!$likeSummary['like_summary']['like_possible']) {
+        if (!$likeSummary['like_possible']) {
             throw new OkToolsLikesNotPermittedException(
-                "Not possible to like this photo",
+                "Not possible to like this entity",
                 var_export($likeSummary, true)
             );
         }
 
       // Check if photo has not been liked before.
-        if ($likeSummary['like_summary']['self']) {
+        if ($likeSummary['self']) {
             throw new OkToolsLikesDoneBeforeException("Like has been done before.", var_export($likeSummary, true));
         }
       
         $form = [
           "application_key" => $this->OkToolsClient->getAppKey(),
-          "like_id" => $likeSummary['like_summary']['like_id'],
+          "like_id" => $likeSummary['like_id'],
           "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
         ];
         $result = $this->OkToolsClient->makeRequest(
@@ -930,6 +930,27 @@ class OkToolsAccountControl extends OkToolsBaseControl
                 ]
             ]
         ];
+        
+//        $methods[] = [
+//            'messagesV2.getAttachedResources' => [
+//                "params" => [
+//                    "fields" => 'attachment_photo.*'
+//                ],
+//                "supplyParams" => [
+//                    "attach_ids" => 'stream.get.entities.comments.attachment_ids'
+//                ]
+//            ]
+//        ];
+        
+//        $methods[] = [
+//            'users.getFriendsHolidays' => [
+//                "params" => [
+//                    "fields" => 'birthday,premium,gender,pic190x190,name,vip,INTERNAL_PIC_ALLOW_EMPTY',
+//                    "filter" => "RECOMMENDED"
+//                ],
+//                "onError" => "SKIP"
+//            ]
+//        ];
 
         // Additional parameters.
         if ($anchor) {
@@ -956,11 +977,58 @@ class OkToolsAccountControl extends OkToolsBaseControl
         );
 
         // Check wall data exists.
-        if (isset($result[0]) && isset($result[0]['ok']) && isset($result[0]['ok']['feeds'])) {
+        if (isset($result[0]) && isset($result[0]['ok']) && isset($result[0]['ok'])) {
+            return $result[0]['ok'];
+        } elseif (isset($result['error_data']) && $result['error_data'] == 'FEED_VISIBILITY') {
+            // EXCEPTIOn
+        } else {
+            throw new OkToolsAccountGetInfoException(
+                "Couldn't retrieve user wall info",
+                var_export($result, true)
+              );
+        }
+    }
+
+    /**
+     * Get user Wall data.
+     *
+     * @param type $userId
+     * @param type $anchor
+     * @return type
+     * @throws OkToolsAccountGetInfoException
+     */
+    public function getRecommendedFriends() {
+        // Get user wall first stream.
+        $methods = [];
+        $methods[] = [
+            "friends.getPYMK" => [
+                "params" => [  
+                   "count" => "20",
+                   "direction" => "FORWARD",
+                   "fields" => "birthday,gender,first_name,pic190x190,name,online,premium,location,show_lock,last_name,age,vip",
+                   "mutualFriendsCount" => "5",
+                   "mutualFriendsFields" => "birthday,gender,first_name,pic190x190,name,premium,online,last_online_ms,show_lock,last_name,vip"
+                ]
+            ]
+        ];
+
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "methods" => json_encode($methods)
+        ];
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/batch/executeV2",
+            $form,
+            "post"
+        );
+
+        // Check wall data exists.
+        if (isset($result[0]) && isset($result[0]['ok']) && isset($result[0]['ok']['users'])) {
             return $result[0]['ok'];
         } else {
             throw new OkToolsAccountGetInfoException(
-              "Couldn't retrieve user wall info",
+              "Couldn't retrieve recommended users info",
               var_export($result, true)
             );
         }

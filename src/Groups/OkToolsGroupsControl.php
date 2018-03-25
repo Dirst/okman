@@ -38,17 +38,19 @@ class OkToolsGroupsControl extends OkToolsBaseControl
      *   Ok Tools Base object.
      * @param int $groupId
      *   Group Id to init the group. Website format.
+     * @param boolean $convertId
+     *   Convert group Id to mobile application number.
      *
      * @throws OkToolsGroupLoadException
      *   When group load has been failed.
      */
-    public function __construct(OkToolsClient $okTools, $groupId)
+    public function __construct(OkToolsClient $okTools, $groupId, $convertId = true)
     {
         // Init client and group id.
         parent::__construct($okTools);
 
         // Calculate api group ID.
-        $this->groupId = $groupId = $this->OkToolsClient->convertId($groupId);
+        $this->groupId = $groupId = $convertId ? $this->OkToolsClient->convertId($groupId) : $groupId;
 
         // Retrieve group.
         $form = [
