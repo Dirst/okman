@@ -162,12 +162,18 @@ class OkToolsRegister
       // Check success status.
       $location = $this->androidAgent ? 'apphook/login?login' : 'st.cmd=newRegUploadPhoto';
       if (strpos($this->requester->getHeaders()['Location'], $location) !== false) {
-          $this->activator->setComplete($result['id']);
-          return ["phone" => $result['phone'], 'password' => $password];
+          return ["phone" => $result['phone'], 'password' => $password, 'result_id' => $result['id']];
       } else {
           $this->activator->setCancel($result['id']);
           throw new OkToolsRegisterException("Couldn't retrieve success status on register", $form);
       }
+    }
+    
+    /**
+     * Set complete.
+     */
+    public function setComplete($id) {
+      $this->activator->setComplete($id);
     }
 
   /**
