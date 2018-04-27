@@ -13,6 +13,7 @@ use Dirst\OkTools\Exceptions\Group\OkToolsGroupMembersLoadException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetFeedsException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupPostTopicException;
 use Dirst\OkTools\Exceptions\Group\OkToolsGroupGetTopicDetailsException;
+use Dirst\OkTools\Exceptions\Group\OkToolsGroupDeleteTopicException;
 
 /**
  * Groups control for account.
@@ -582,6 +583,43 @@ class OkToolsGroupsControl extends OkToolsBaseControl
         } else {
             throw new OkToolsGroupPostTopicException(
                 "Post topic problem.",
+                var_export($result, true)
+            );
+        }
+    }
+
+    /**
+     * Delete topic.
+     *
+     * @param string $topicId
+     *   Topic ID.
+     *
+     * @return string
+     *   Restore id.
+     *
+     * @throws OkToolsGroupDeleteTopicException
+     *   If no success.
+     */
+    public function removeTopic($topicId)
+    {
+        $form = [
+            "application_key" => $this->OkToolsClient->getAppKey(),
+            "session_key" => $this->OkToolsClient->getLoginData()['auth_login_response']['session_key'],
+            "topic_id" => $topicId
+        ];
+
+        // Send request.
+        $result = $this->OkToolsClient->makeRequest(
+            $this->OkToolsClient->getApiEndpoint() . "/mediatopic/deleteTopic",
+            $form
+        );
+
+        // Check if post id has been returned.
+        if (isset($result['success']) && $result['success']) {
+            return $result['restore_id'];
+        } else {
+            throw new OkToolsGroupDeleteTopicException(
+                "Delete topic problem.",
                 var_export($result, true)
             );
         }
