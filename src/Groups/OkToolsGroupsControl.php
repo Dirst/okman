@@ -599,7 +599,7 @@ class OkToolsGroupsControl extends OkToolsBaseControl
     public function uploadAndGetPhotoId($imagePath)
     {
         $photoUploader = new OkToolsPhotoUploader($this->OkToolsClient);
-        $uploadData = $photoUploader->getPhotoUploadUrl($this->groupId);
+        $uploadData = $photoUploader->getPhotoUploadData($this->groupId);
         $result = $photoUploader->uploadPhotoViaRetrievedUrl($uploadData['upload_url'], $imagePath);
         return current($result['photos'])['token'];
     }    
