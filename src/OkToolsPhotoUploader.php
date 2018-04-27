@@ -27,14 +27,10 @@ class OkToolsPhotoUploader extends OkToolsBaseControl
         $methods[] = [
             "method" => "photosV2.getUploadUrl",
             "params" => [
-              "count" => "1"
+              "count" => "1",
+              'gid' => $groupId
             ]
         ];
-
-        // Check if group id exists.
-        if ($groupId) {
-          $methods['params']['gid'] = $groupId;
-        }
 
         $form = [
             "application_key" => $this->OkToolsClient->getAppKey(),
