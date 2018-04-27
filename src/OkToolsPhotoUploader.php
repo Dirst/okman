@@ -24,12 +24,17 @@ class OkToolsPhotoUploader extends OkToolsBaseControl
     public function getPhotoUploadData($groupId = null)
     {
         $methods = [];
+        $params = [
+          "count" => "1"
+        ];
+
+        if ($groupId) {
+            $params['gid'] = $groupId;
+        }
+        
         $methods[] = [
             "method" => "photosV2.getUploadUrl",
-            "params" => [
-              "count" => "1",
-              'gid' => $groupId
-            ]
+            "params" => $params
         ];
 
         $form = [
